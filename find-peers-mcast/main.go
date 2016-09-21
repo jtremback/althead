@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"strconv"
 )
 
 type Service struct {
@@ -14,14 +15,7 @@ type Service struct {
 	TunnelPubkey string
 }
 
-func Advertise(
-	service *Service,
-) error {
-	// json, err := json.Marshal(service)
-	// if err != nil {
-	// 	return err
-	// }
-
+func Advertise() error {
 	iface, err := net.InterfaceByName("eth0")
 	if err != nil {
 		return err
@@ -40,12 +34,10 @@ func Advertise(
 		return err
 	}
 
-	fmt.Println("conn created")
-
 	scanner := bufio.NewScanner(conn)
-
+	fmt.Println("made conn")
 	for scanner.Scan() {
-		fmt.Println("scanning")
+		fmt.Println("scannin")
 		text := scanner.Text()
 		fmt.Println(text)
 	}
@@ -56,27 +48,27 @@ func Advertise(
 	return nil
 }
 
-func GetPeers() error {
-	conn, err := net.DialUDP("udp6", nil, &net.UDPAddr{
-		IP:   net.ParseIP("ff02::1"),
-		Port: 5544,
-		Zone: "eth0",
-	})
+func QueryPeers(
+	IP net.IP,
+	port int,
+) error {
+	conn, err := net.DialUDP(
+		"udp6",
+		nil,
+		&net.UDPAddr{
+			IP:   net.ParseIP("ff02::1"),
+			Port: 5544,
+			Zone: "eth0",
+		})
 	if err != nil {
 		return err
 	}
 
-	conn.Write([]byte("service request\n"))
-
-	// scanner := bufio.NewScanner(conn)
-
-	// for scanner.Scan() {
-	// 	text := scanner.Text()
-	// 	fmt.Println(text)
-	// }
-	// if err := scanner.Err(); err != nil {
-	// 	return err
-	// }
+	conn.Write([]byte("Althea service request " +
+		IP.String() +
+		" " +
+		strconv.Itoa(port) +
+		"\n"))
 
 	return nil
 }

@@ -43,7 +43,8 @@ func Find(babelPort int) ([]net.IP, error) {
 		if matched {
 			re := regexp.MustCompile("address (\\S*) if (\\S*)")
 			matches := re.FindStringSubmatch(text)
-			fmt.Printf("%v%%%v", matches[1], matches[2])
+			ip := fmt.Sprintf("%v%%%v", matches[1], matches[2])
+			fmt.Println(ip)
 		}
 	}
 	if err := scanner.Err(); err != nil {

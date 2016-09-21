@@ -18,17 +18,19 @@ func main() {
 
 	flag.Parse()
 
-	fmt.Println(server)
-
 	if *server {
-		err := findPeersMCast.Advertise()
+		service := &findPeersMCast.Service{
+			Denom:        "ETH",
+			Rate:         1,
+			TunnelIP:     net.ParseIP("2000::1"),
+			TunnelPort:   3456,
+			TunnelPubkey: "shibb",
+		}
+		err := findPeersMCast.Advertise(service)
+		fmt.Println("called")
 		fmt.Println(err)
 	} else {
-		fmt.Println("else")
-		err := findPeersMCast.QueryPeers(
-			net.ParseIP("2001::1"),
-			4500,
-		)
+		err := findPeersMCast.GetPeers()
 		fmt.Println(err)
 	}
 }

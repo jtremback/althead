@@ -9,18 +9,16 @@ import (
 	"github.com/hashicorp/mdns"
 )
 
-type TOS struct {
-	Speedtest string
-	Result    string
-	Denom     string
-	Rate      int
+type Service struct {
+	Denom        string
+	Rate         int
+	TunnelIP     net.IP
+	TunnelPort   int
+	TunnelPubkey string
 }
 
 func Advertise(
-	tunnelIP net.IP,
-	tunnelPort int,
-	tunnelPubkey string,
-	tos TOS,
+	service *Service,
 ) (*mdns.Server, error) {
 	// Setup our service export
 	host, err := os.Hostname()
@@ -28,18 +26,18 @@ func Advertise(
 		return nil, err
 	}
 
-	json, err := json.Marshal(tos)
+	json, err := json.Marshal(service)
 	if err != nil {
 		return nil, err
 	}
 
-	service, err := mdns.NewMDNSService(
-		tunnelPubkey,
+	MDNSservice, err := mdns.NewMDNSService(
+		service.TunnelPubkey,
 		"Althea peer discovery",
 		"local",
 		host,
-		tunnelPort,
-		[]net.IP{tunnelIP},
+		service.TunnelPort,
+		[]net.IP{service.TunnelIP},
 		[]string{string(json)},
 	)
 	if err != nil {
@@ -47,7 +45,7 @@ func Advertise(
 	}
 
 	// Create the mDNS server
-	server, err := mdns.NewServer(&mdns.Config{Zone: service})
+	server, err := mdns.NewServer(&mdns.Config{Zone: MDNSservice})
 	if err != nil {
 		return nil, err
 	}

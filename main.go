@@ -12,33 +12,34 @@ var opts struct {
 	server bool `short:"s" long:"server" description:"Run uplink advertisement server"`
 }
 
+// "github.com/jtremback/althea/find-peers-babel"
+
+// func main() {
+// 	fmt.Println("hello")
+// 	_, err := findPeersBabel.Find(8481)
+// 	fmt.Println(err)
+// }
+
 func main() {
-	args, err := flags.Parse(&opts)
+	_, err := flags.Parse(&opts)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	tos := findPeers.TOS{
-		Speedtest: "",
-		Result:    "",
-		Denom:     "ETH",
-		Rate:      0,
-	}
+	if opts.server {
+		service := &findPeersMDNS.Service{
+			Denom:        "ETH",
+			Rate:         1,
+			TunnelIP:     net.ParseIP("2000::1"),
+			TunnelPort:   3456,
+			TunnelPubkey: "shibb",
+		}
+		server, err := findPeersMDNS.Advertise(service)
 
-	ip := net.ParseIP("10::1")
-	if ip == nil {
-		fmt.Println("fucked up ip address")
+		if err != nil {
+			fmt.Println(err)
+		}
+		defer server.Shutdown()
 	}
-
-	server, err := findPeersMDNS.Advertise(
-		ip,
-		7099,
-		"shib",
-		tos,
-	)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	defer server.Shutdown()
+	findPeersMDNS.GetPeers()
 }

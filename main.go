@@ -18,49 +18,29 @@ func main() {
 
 	flag.Parse()
 
-	fmt.Println(server)
-
-	if *server {
-		err := findPeersMCast.Advertise()
-		fmt.Println(err)
-	} else {
-		fmt.Println("else")
-		err := findPeersMCast.QueryPeers(
-			net.ParseIP("2001::1"),
-			4500,
-		)
+	iface, err := net.InterfaceByName("eth0")
+	if err != nil {
 		fmt.Println(err)
 	}
+
+	if *server {
+		fmt.Println("advertise")
+		err := findPeersMCast.Advertise(
+			iface,
+			8481,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+	} else {
+		fmt.Println("query")
+		err := findPeersMCast.QueryPeers(
+			iface,
+			4500,
+			8481,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 }
-
-// "github.com/jtremback/althea/find-peers-babel"
-
-// func main() {
-// 	fmt.Println("hello")
-// 	_, err := findPeersBabel.Find(8481)
-// 	fmt.Println(err)
-// }
-
-// func main() {
-// 	_, err := flags.Parse(&opts)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 	}
-
-// 	if opts.server {
-// 		service := &findPeersMDNS.Service{
-// 			Denom:        "ETH",
-// 			Rate:         1,
-// 			TunnelIP:     net.ParseIP("2000::1"),
-// 			TunnelPort:   3456,
-// 			TunnelPubkey: "shibb",
-// 		}
-// 		server, err := findPeersMDNS.Advertise(service)
-
-// 		if err != nil {
-// 			fmt.Println(err)
-// 		}
-// 		defer server.Shutdown()
-// 	}
-// 	findPeersMDNS.GetPeers()
-// }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 )
 
 type Service struct {
@@ -15,19 +16,18 @@ type Service struct {
 	TunnelPubkey string
 }
 
-func Advertise() error {
-	iface, err := net.InterfaceByName("eth0")
-	if err != nil {
-		return err
-	}
+func Advertise(
+	iface *net.Interface,
+	listenPort int,
+) error {
 
 	conn, err := net.ListenMulticastUDP(
 		"udp6",
 		iface,
 		&net.UDPAddr{
 			IP:   net.ParseIP("ff02::1"),
-			Port: 5544,
-			Zone: "eth0",
+			Port: listenPort,
+			Zone: iface.Name,
 		},
 	)
 	if err != nil {
@@ -35,11 +35,15 @@ func Advertise() error {
 	}
 
 	scanner := bufio.NewScanner(conn)
-	fmt.Println("made conn")
+
 	for scanner.Scan() {
-		fmt.Println("scannin")
-		text := scanner.Text()
-		fmt.Println(text)
+		msg := strings.Split(scanner.Text(), " ")
+
+		if msg[0] == "althea_service_request" {
+			fmt.Println("right kind of message")
+			// Make
+		}
+		fmt.Println(msg)
 	}
 	if err := scanner.Err(); err != nil {
 		return err
@@ -49,25 +53,52 @@ func Advertise() error {
 }
 
 func QueryPeers(
-	IP net.IP,
-	port int,
+	iface *net.Interface,
+	listenPort int,
+	mCastPort int,
 ) error {
-	conn, err := net.DialUDP(
+	// l, err := net.Listen(
+	// 	"tcp6",
+	// 	":"+strconv.Itoa(listenPort),
+	// )
+	// if err != nil {
+	// 	return err
+	// }
+
+	// defer l.Close()
+	// for {
+	// 	// Wait for a connection.
+	// 	conn, err := l.Accept()
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	// Handle the connection in a new goroutine.
+	// 	// The loop then returns to accepting, so that
+	// 	// multiple connections may be served concurrently.
+	// 	go func(c net.Conn) {
+	// 		// Echo all incoming data.
+	// 		io.Copy(os.Stdout, c)
+	// 		// Shut down the connection.
+	// 		c.Close()
+	// 	}(conn)
+	// }
+
+	client, err := net.DialUDP(
 		"udp6",
 		nil,
 		&net.UDPAddr{
 			IP:   net.ParseIP("ff02::1"),
-			Port: 5544,
-			Zone: "eth0",
+			Port: mCastPort,
+			Zone: iface.Name,
 		})
 	if err != nil {
 		return err
 	}
 
-	conn.Write([]byte("Althea service request " +
-		IP.String() +
+	client.Write([]byte("althea_service_request " +
+		/*l.Addr().String()*/ "shibby" +
 		" " +
-		strconv.Itoa(port) +
+		strconv.Itoa(listenPort) +
 		"\n"))
 
 	return nil

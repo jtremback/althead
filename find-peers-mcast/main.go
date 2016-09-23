@@ -6,14 +6,6 @@ import (
 	"net"
 )
 
-type Service struct {
-	Denom        string
-	Rate         int
-	TunnelIP     net.IP
-	TunnelPort   int
-	TunnelPubkey string
-}
-
 func Advertise(
 	iface *net.Interface,
 	mcastPort int,
@@ -32,7 +24,7 @@ func Advertise(
 	}
 
 	for {
-		b := make([]byte, 64)
+		b := make([]byte, 12)
 		_, addr, err := conn.ReadFromUDP(b)
 		if err != nil {
 			return err
@@ -47,12 +39,12 @@ func Advertise(
 				return err
 			}
 
-			conn.Write([]byte("althea_hello"))
+			conn.Write([]byte("althea_ihu"))
 
 			conn.Close()
 
 		}
-		fmt.Println("foobler", string(b), addr)
+		fmt.Println("got msg", string(b), addr)
 	}
 
 	return nil
@@ -79,7 +71,6 @@ func firstLinkLocalUnicast(iface *net.Interface) (*net.IP, error) {
 
 func QueryPeers(
 	iface *net.Interface,
-	listenPort int,
 	mCastPort int,
 ) error {
 	ip, err := firstLinkLocalUnicast(iface)
@@ -92,28 +83,24 @@ func QueryPeers(
 		Port: 0,
 		Zone: iface.Name,
 	}
-	fmt.Println(laddr)
+
 	l, err := net.ListenUDP("udp6", laddr)
 	if err != nil {
 		return err
 	}
 
-	laddr, err = net.ResolveUDPAddr("udp6", l.LocalAddr().String())
-	if err != nil {
-		return err
-	}
-	fmt.Println(laddr)
 	defer l.Close()
 
 	ch := make(chan error)
 
 	go func() {
 		for {
-			_, addr, err := l.ReadFromUDP([]byte{})
+			b := make([]byte, 10)
+			_, addr, err := l.ReadFromUDP(b)
 			if err != nil {
 				ch <- err
 			}
-			fmt.Println("goobler", addr)
+			fmt.Println("got msg", string(b), addr)
 		}
 	}()
 
@@ -123,15 +110,7 @@ func QueryPeers(
 		Zone: iface.Name,
 	}
 
-	conn, err := net.DialUDP("udp6", nil, raddr)
-	if err != nil {
-		return err
-	}
-
-	conn.Write([]byte("althea_hello " +
-		laddr.String()))
-
-	conn.Close()
+	l.WriteToUDP([]byte("althea_hello"), raddr)
 
 	err = <-ch
 	return err

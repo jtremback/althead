@@ -36,7 +36,6 @@ func main() {
 		fmt.Println("query")
 		err := findPeersMCast.QueryPeers(
 			iface,
-			4500,
 			8481,
 		)
 		if err != nil {

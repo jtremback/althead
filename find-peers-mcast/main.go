@@ -1,14 +1,12 @@
 package findPeersMCast
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"os"
 	"strconv"
-	"strings"
 )
 
 type Service struct {
@@ -37,24 +35,35 @@ func Advertise(
 		return err
 	}
 
-	scanner := bufio.NewScanner(conn)
+	var b []byte
 
-	for scanner.Scan() {
-		msg := strings.Split(scanner.Text(), " ")
-
-		if msg[0] == "althea_service_request" {
-			fmt.Println("right kind of message")
-			conn, err := net.Dial("tcp6", msg[1])
-			if err != nil {
-				return err
-			}
-			conn.Write([]byte("derp"))
+	for {
+		i, addr, err := conn.ReadFromUDP(b)
+		if err != nil {
+			return err
 		}
-		fmt.Println(msg)
+		fmt.Println("foobler", i, len(b), addr)
 	}
-	if err := scanner.Err(); err != nil {
-		return err
-	}
+
+	// scanner := bufio.NewScanner(conn)
+
+	// for scanner.Scan() {
+
+	// 	msg := strings.Split(scanner.Text(), " ")
+
+	// 	if msg[0] == "althea_service_request" {
+	// 		fmt.Println("right kind of message", conn.RemoteAddr())
+	// 		conn, err := net.Dial("tcp6", msg[1])
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 		conn.Write([]byte("derp"))
+	// 	}
+	// 	fmt.Println(msg)
+	// }
+	// if err := scanner.Err(); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

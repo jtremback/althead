@@ -34,12 +34,15 @@ func main() {
 		}
 	} else {
 		fmt.Println("query")
-		err := findPeersMCast.QueryPeers(
+		findPeersMCast.QueryPeers(
 			iface,
 			8481,
+			func(ip net.IP, err error) {
+				if err != nil {
+					fmt.Println(err)
+				}
+				fmt.Println("yars", ip)
+			},
 		)
-		if err != nil {
-			fmt.Println(err)
-		}
 	}
 }

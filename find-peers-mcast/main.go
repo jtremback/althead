@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"time"
 )
 
 func Advertise(
@@ -72,46 +73,41 @@ func firstLinkLocalUnicast(iface *net.Interface) (*net.IP, error) {
 func QueryPeers(
 	iface *net.Interface,
 	mCastPort int,
-) error {
+	cb func(net.IP, error),
+) {
 	ip, err := firstLinkLocalUnicast(iface)
 	if err != nil {
-		return err
+		cb(nil, err)
 	}
 
-	laddr := &net.UDPAddr{
+	conn, err := net.ListenUDP("udp6", &net.UDPAddr{
 		IP:   *ip,
 		Port: 0,
 		Zone: iface.Name,
-	}
-
-	l, err := net.ListenUDP("udp6", laddr)
+	})
 	if err != nil {
-		return err
+		cb(nil, err)
 	}
 
-	defer l.Close()
-
-	ch := make(chan error)
+	defer conn.Close()
 
 	go func() {
 		for {
 			b := make([]byte, 10)
-			_, addr, err := l.ReadFromUDP(b)
+			_, addr, err := conn.ReadFromUDP(b)
 			if err != nil {
-				ch <- err
+				cb(nil, err)
 			}
-			fmt.Println("got msg", string(b), addr)
+			fmt.Println(addr.String())
+			cb(net.ParseIP(addr.String()), nil)
 		}
 	}()
 
-	raddr := &net.UDPAddr{
+	conn.WriteToUDP([]byte("althea_hello"), &net.UDPAddr{
 		IP:   net.ParseIP("ff02::1"),
 		Port: mCastPort,
 		Zone: iface.Name,
-	}
+	})
 
-	l.WriteToUDP([]byte("althea_hello"), raddr)
-
-	err = <-ch
-	return err
+	time.Sleep(1 * time.Second)
 }

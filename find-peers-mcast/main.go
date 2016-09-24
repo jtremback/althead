@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"time"
 )
 
 func Advertise(
@@ -91,23 +90,19 @@ func QueryPeers(
 
 	defer conn.Close()
 
-	go func() {
-		for {
-			b := make([]byte, 10)
-			_, addr, err := conn.ReadFromUDP(b)
-			if err != nil {
-				cb(nil, err)
-			}
-			fmt.Println(addr.String())
-			cb(net.ParseIP(addr.String()), nil)
-		}
-	}()
-
 	conn.WriteToUDP([]byte("althea_hello"), &net.UDPAddr{
 		IP:   net.ParseIP("ff02::1"),
 		Port: mCastPort,
 		Zone: iface.Name,
 	})
 
-	time.Sleep(1 * time.Second)
+	for {
+		b := make([]byte, 10)
+		_, addr, err := conn.ReadFromUDP(b)
+		if err != nil {
+			cb(nil, err)
+		}
+		fmt.Println(addr.String())
+		cb(net.ParseIP(addr.String()), nil)
+	}
 }

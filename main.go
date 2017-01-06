@@ -6,7 +6,7 @@ import
 
 (
 	"flag"
-	"fmt"
+	"log"
 	"net"
 
 	"github.com/jtremback/althea/find-peers-mcast"
@@ -20,28 +20,27 @@ func main() {
 
 	iface, err := net.InterfaceByName("eth0")
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(err)
 	}
 
 	if *server {
-		fmt.Println("advertise")
-		err := findPeersMCast.Advertise(
+		log.Println("listen")
+		err := findPeersMCast.Listen(
 			iface,
 			8481,
 		)
 		if err != nil {
-			fmt.Println(err)
+			log.Fatalln(err)
 		}
 	} else {
-		fmt.Println("query")
-		findPeersMCast.QueryPeers(
+		log.Println("hello")
+		findPeersMCast.Hello(
 			iface,
 			8481,
 			func(ip net.IP, err error) {
 				if err != nil {
-					fmt.Println(err)
+					log.Fatalln(err)
 				}
-				fmt.Println("yars", ip)
 			},
 		)
 	}

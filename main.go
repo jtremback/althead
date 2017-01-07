@@ -28,6 +28,11 @@ func main() {
 		err := findPeersMCast.Listen(
 			iface,
 			8481,
+			func(ip net.IP, err error) {
+				if err != nil {
+					log.Fatalln(err)
+				}
+			},
 		)
 		if err != nil {
 			log.Fatalln(err)

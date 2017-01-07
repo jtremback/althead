@@ -1,15 +1,22 @@
 package findPeersMCast
 
 import (
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"strings"
+
+	"github.com/agl/ed25519"
+	"github.com/jtremback/althea/types"
 )
 
 func Listen(
 	iface *net.Interface,
 	mcastPort int,
+	account types.Account,
+	cb func(types.Peer, error),
 ) error {
 
 	conn, err := net.ListenMulticastUDP(
@@ -37,26 +44,44 @@ func Listen(
 		log.Println("received: "+string(b), "from: ", addr)
 
 		if msg[0] == "althea_hello" {
-			conn, err := net.DialUDP(
-				"udp6",
-				nil,
-				addr,
-			)
-			if err != nil {
-				return err
-			}
-
-			s := "althea_ihu <pubkey>"
-
-			conn.Write([]byte(s))
-
-			log.Println("sent: " + s)
-			conn.Close()
-
+			sendUDP(addr, printHello(account))
 		}
 	}
 
 	return nil
+}
+
+func sendUDP(
+	addr *net.UDPAddr,
+	s string,
+) error {
+	conn, err := net.DialUDP(
+		"udp6",
+		nil,
+		addr,
+	)
+	defer conn.Close()
+	if err != nil {
+		return err
+	}
+
+	conn.Write([]byte(s))
+	log.Println("sent: " + s)
+	return nil
+}
+
+func printHello(account types.Account) string {
+	// althea_hello <control pubkey> <control address> <tunnel pubkey> <tunnel address> <signature>
+	unsigned := fmt.Sprintf(
+		"althea_hello %v %v %v %v ",
+		base64.URLEncoding.EncodeToString(account.ControlPubkey[:]),
+		account.TunnelAddress,
+		base64.URLEncoding.EncodeToString(ed25519.Sign(&account.ControlPrivkey, []byte(account.TunnelAddress))[:]),
+	)
+
+	sig := base64.URLEncoding.EncodeToString(ed25519.Sign(&account.ControlPrivkey, []byte(unsigned))[:])
+
+	return unsigned + sig
 }
 
 func firstLinkLocalUnicast(iface *net.Interface) (*net.IP, error) {

@@ -2,15 +2,15 @@ package types
 
 type Peer struct {
 	ControlAddress string
-	ControlPubkey  [32]byte
+	ControlPubkey  []byte
 	TunnelAddress  string
 	TunnelPubkey   []byte
 }
 
 type Account struct {
 	ControlAddress string
-	ControlPubkey  [32]byte
-	ControlPrivkey [64]byte
+	ControlPubkey  []byte
+	ControlPrivkey []byte
 	TunnelAddress  string
 	TunnelPubkey   []byte
 }

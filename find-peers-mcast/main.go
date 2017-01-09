@@ -85,6 +85,7 @@ func (a *NeighborAPI) McastListen(
 // HelloHandler takes an `althea_hello` packet, verifies the signature,
 // parses the packet into a `Neighbor` struct, and updates the `Neighbor` on file with the new information
 // contained therein. It also updates the tunneling software. It returns the parsed `Neighbor`.
+// TODO: actually update tunneling software
 func (a *NeighborAPI) HelloHandler(msg []string) (*types.Neighbor, error) {
 	neighbor, err := serialization.ParseHello(msg)
 	if err != nil {

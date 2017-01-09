@@ -1,6 +1,6 @@
 package types
 
-type Peer struct {
+type Neighbor struct {
 	ControlAddress string
 	ControlPubkey  []byte
 	TunnelAddress  string

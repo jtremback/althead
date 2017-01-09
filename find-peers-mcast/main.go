@@ -1,22 +1,32 @@
-package findPeersMCast
+package findNeighborsMCast
 
 import (
-	"encoding/base64"
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"strings"
 
-	"github.com/jtremback/althea/ed25519-wrapper"
+	"github.com/boltdb/bolt"
+	"github.com/jtremback/althea/access"
+	"github.com/jtremback/althea/serialization"
 	"github.com/jtremback/althea/types"
 )
 
-func Listen(
+type NeighborAPI struct {
+	DB *bolt.DB
+}
+
+// `ControlListen` listens on the `ControlAddress` of a given interface and passes received messages to
+// the appropriate handler function.
+
+// McastListen listens on the multicast UDP address on a given interface. When it gets
+// an althea_hello packet, it calls HelloHandler and sends an althea_hello packet
+// to the ControlAddress of the Neighbor.
+func (a *NeighborAPI) McastListen(
 	iface *net.Interface,
 	mcastPort int,
 	account types.Account,
-	cb func(*types.Peer, error),
+	cb func(*types.Neighbor, error),
 ) error {
 	conn, err := net.ListenMulticastUDP(
 		"udp6",
@@ -32,37 +42,124 @@ func Listen(
 	}
 
 	for {
-		peer, err := readUDPHello(conn)
+		var b []byte
+		_, _, err := conn.ReadFromUDP(b)
 		if err != nil {
 			cb(nil, err)
 			continue
 		}
-		cb(peer, nil)
+
+		msg := strings.Split(string(b), " ")
+
+		log.Println("received: " + string(b))
+
+		if msg[0] == "althea_hello" {
+			neighbor, err := a.HelloHandler(msg)
+			if err != nil {
+				cb(nil, err)
+				continue
+			}
+
+			addr, err := net.ResolveUDPAddr("udp6", neighbor.ControlAddress)
+			if err != nil {
+				cb(nil, err)
+				continue
+			}
+
+			err = sendUDP(addr, serialization.FmtHello(account))
+			if err != nil {
+				cb(nil, err)
+				continue
+			}
+
+			cb(neighbor, nil)
+		} else {
+			cb(nil, errors.New("unrecognized message type"))
+			continue
+		}
 	}
 
 	return nil
 }
 
-func readUDPHello(conn *net.UDPConn) (*types.Peer, error) {
-	b := make([]byte, 64)
-	_, addr, err := conn.ReadFromUDP(b)
+// HelloHandler takes an `althea_hello` packet, verifies the signature,
+// parses the packet into a `Neighbor` struct, and updates the `Neighbor` on file with the new information
+// contained therein. It also updates the tunneling software. It returns the parsed `Neighbor`.
+func (a *NeighborAPI) HelloHandler(msg []string) (*types.Neighbor, error) {
+	neighbor, err := serialization.ParseHello(msg)
 	if err != nil {
 		return nil, err
 	}
 
-	msg := strings.Split(string(b), " ")
-
-	log.Println("received: "+string(b), "from: ", addr)
-
-	if msg[0] == "althea_hello" {
-		peer, err := parseHello(msg)
-		if err != nil {
-			return nil, err
-		}
-		return peer, nil
-	} else {
-		return nil, errors.New("unrecognized message type")
+	err = a.DB.Update(func(tx *bolt.Tx) error {
+		return access.SetNeighbor(tx, neighbor)
+	})
+	if err != nil {
+		return nil, err
 	}
+
+	return neighbor, nil
+}
+
+func (a *NeighborAPI) ControlListen(
+	iface *net.Interface,
+	account types.Account,
+	cb func(*types.Neighbor, error),
+) error {
+	addr, err := net.ResolveUDPAddr("udp6", account.ControlAddress)
+	if err != nil {
+		return err
+	}
+
+	conn, err := net.ListenUDP("udp6", addr)
+	if err != nil {
+		cb(nil, err)
+	}
+
+	defer conn.Close()
+	for {
+		var b []byte
+		_, _, err := conn.ReadFromUDP(b)
+		if err != nil {
+			cb(nil, err)
+			continue
+		}
+
+		msg := strings.Split(string(b), " ")
+
+		log.Println("received: " + string(b))
+
+		if msg[0] == "althea_hello" {
+			_, err := a.HelloHandler(msg)
+			if err != nil {
+				cb(nil, err)
+				continue
+			}
+		} else {
+			cb(nil, errors.New("unrecognized message type"))
+			continue
+		}
+	}
+
+	return nil
+}
+
+// McastHello sends an `althea_hello` packet to the multicast UDP address on a given interface.
+func McastHello(
+	iface *net.Interface,
+	mCastPort int,
+	account types.Account,
+	cb func(*types.Neighbor, error),
+) error {
+	err := sendUDP(&net.UDPAddr{
+		IP:   net.ParseIP("ff02::1"),
+		Port: mCastPort,
+		Zone: iface.Name,
+	}, serialization.FmtHello(account))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func sendUDP(
@@ -84,70 +181,6 @@ func sendUDP(
 	return nil
 }
 
-// althea_hello <control address> <control pubkey> <tunnel address> <tunnel pubkey> <signature>
-func printHello(account types.Account) string {
-	sig := ed25519.Sign(account.ControlPrivkey, concatByteSlices(
-		[]byte("althea_hello"),
-		[]byte(account.ControlAddress),
-		account.ControlPubkey,
-		[]byte(account.TunnelAddress),
-		account.TunnelPubkey,
-	))
-
-	return fmt.Sprintf(
-		"althea_hello %v %v %v %v %v",
-		account.ControlAddress,
-		base64.StdEncoding.EncodeToString(account.ControlPubkey),
-		account.TunnelAddress,
-		base64.StdEncoding.EncodeToString(account.TunnelPubkey),
-		base64.StdEncoding.EncodeToString(sig),
-	)
-}
-
-func concatByteSlices(slices ...[]byte) []byte {
-	var slice []byte
-	for _, s := range slices {
-		slice = append(slice, s...)
-	}
-	return slice
-}
-
-func parseHello(msg []string) (*types.Peer, error) {
-	controlPubkey, err := base64.StdEncoding.DecodeString(msg[2])
-	if err != nil {
-		return nil, err
-	}
-
-	tunnelPubkey, err := base64.StdEncoding.DecodeString(msg[4])
-	if err != nil {
-		return nil, err
-	}
-
-	sig, err := base64.StdEncoding.DecodeString(msg[5])
-	if err != nil {
-		return nil, err
-	}
-
-	peer := &types.Peer{
-		ControlAddress: msg[1],
-		ControlPubkey:  controlPubkey,
-		TunnelAddress:  msg[3],
-		TunnelPubkey:   tunnelPubkey,
-	}
-
-	if !ed25519.Verify(controlPubkey, concatByteSlices(
-		[]byte("althea_hello"),
-		[]byte(peer.ControlAddress),
-		peer.ControlPubkey,
-		[]byte(peer.TunnelAddress),
-		[]byte(peer.TunnelPubkey),
-	), sig) {
-		return nil, errors.New("signature not valid")
-	}
-
-	return peer, nil
-}
-
 func firstLinkLocalUnicast(iface *net.Interface) (*net.IP, error) {
 	addrs, err := iface.Addrs()
 	if err != nil {
@@ -165,45 +198,4 @@ func firstLinkLocalUnicast(iface *net.Interface) (*net.IP, error) {
 		}
 	}
 	return nil, errors.New("Could not find link local unicast ipv6 address for interface " + iface.Name)
-}
-
-func Hello(
-	iface *net.Interface,
-	mCastPort int,
-	cb func(*types.Peer, error),
-) {
-	ip, err := firstLinkLocalUnicast(iface)
-	if err != nil {
-		cb(nil, err)
-	}
-
-	conn, err := net.ListenUDP("udp6", &net.UDPAddr{
-		IP:   *ip,
-		Port: 0,
-		Zone: iface.Name,
-	})
-	if err != nil {
-		cb(nil, err)
-	}
-
-	defer conn.Close()
-
-	s := "althea_hello <pubkey>"
-
-	conn.WriteToUDP([]byte(s), &net.UDPAddr{
-		IP:   net.ParseIP("ff02::1"),
-		Port: mCastPort,
-		Zone: iface.Name,
-	})
-
-	log.Println("sent: " + s)
-
-	for {
-		peer, err := readUDPHello(conn)
-		if err != nil {
-			cb(nil, err)
-			continue
-		}
-		cb(peer, nil)
-	}
 }

@@ -16,9 +16,6 @@ type NeighborAPI struct {
 	DB *bolt.DB
 }
 
-// `ControlListen` listens on the `ControlAddress` of a given interface and passes received messages to
-// the appropriate handler function.
-
 // McastListen listens on the multicast UDP address on a given interface. When it gets
 // an althea_hello packet, it calls HelloHandler and sends an althea_hello packet
 // to the ControlAddress of the Neighbor.
@@ -82,9 +79,9 @@ func (a *NeighborAPI) McastListen(
 	return nil
 }
 
-// HelloHandler takes an `althea_hello` packet, verifies the signature,
-// parses the packet into a `Neighbor` struct, and updates the `Neighbor` on file with the new information
-// contained therein. It also updates the tunneling software. It returns the parsed `Neighbor`.
+// HelloHandler takes an althea_hello packet, verifies the signature,
+// parses the packet into a Neighbor struct, and updates the Neighbor on file with the new information
+// contained therein. It also updates the tunneling software. It returns the parsed Neighbor.
 // TODO: actually update tunneling software
 func (a *NeighborAPI) HelloHandler(msg []string) (*types.Neighbor, error) {
 	neighbor, err := serialization.ParseHello(msg)
@@ -102,8 +99,9 @@ func (a *NeighborAPI) HelloHandler(msg []string) (*types.Neighbor, error) {
 	return neighbor, nil
 }
 
+// ControlListen listens on the ControlAddress of a given interface and passes received messages to
+// the appropriate handler function.
 func (a *NeighborAPI) ControlListen(
-	iface *net.Interface,
 	account types.Account,
 	cb func(*types.Neighbor, error),
 ) error {
@@ -118,6 +116,7 @@ func (a *NeighborAPI) ControlListen(
 	}
 
 	defer conn.Close()
+
 	for {
 		var b []byte
 		_, _, err := conn.ReadFromUDP(b)
@@ -145,7 +144,7 @@ func (a *NeighborAPI) ControlListen(
 	return nil
 }
 
-// McastHello sends an `althea_hello` packet to the multicast UDP address on a given interface.
+// McastHello sends an althea_hello packet to the multicast UDP address on a given interface.
 func McastHello(
 	iface *net.Interface,
 	mCastPort int,

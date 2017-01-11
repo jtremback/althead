@@ -18,21 +18,21 @@ func concatByteSlices(slices ...[]byte) []byte {
 }
 
 // althea_hello <control address> <control pubkey> <tunnel address> <tunnel pubkey> <signature>
-func FmtHello(account types.Account) string {
-	sig := ed25519.Sign(account.ControlPrivkey, concatByteSlices(
+func FmtHello(tunnel *types.Tunnel) string {
+	sig := ed25519.Sign(tunnel.ControlPrivkey, concatByteSlices(
 		[]byte("althea_hello"),
-		[]byte(account.ControlAddress),
-		account.ControlPubkey,
-		[]byte(account.TunnelAddress),
-		account.TunnelPubkey,
+		[]byte(tunnel.ControlAddress),
+		tunnel.ControlPubkey,
+		[]byte(tunnel.TunnelAddress),
+		tunnel.TunnelPubkey,
 	))
 
 	return fmt.Sprintf(
 		"althea_hello %v %v %v %v %v",
-		account.ControlAddress,
-		base64.StdEncoding.EncodeToString(account.ControlPubkey),
-		account.TunnelAddress,
-		base64.StdEncoding.EncodeToString(account.TunnelPubkey),
+		tunnel.ControlAddress,
+		base64.StdEncoding.EncodeToString(tunnel.ControlPubkey),
+		tunnel.TunnelAddress,
+		base64.StdEncoding.EncodeToString(tunnel.TunnelPubkey),
 		base64.StdEncoding.EncodeToString(sig),
 	)
 }

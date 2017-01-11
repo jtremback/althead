@@ -1,4 +1,4 @@
-package findNeighborsMCast
+package neighborAPI
 
 import (
 	"errors"
@@ -13,25 +13,24 @@ import (
 )
 
 type NeighborAPI struct {
-	DB *bolt.DB
+	DB     *bolt.DB
+	Tunnel *types.Tunnel
 }
 
 // McastListen listens on the multicast UDP address on a given interface. When it gets
 // an althea_hello packet, it calls HelloHandler and sends an althea_hello packet
 // to the ControlAddress of the Neighbor.
 func (a *NeighborAPI) McastListen(
-	iface *net.Interface,
 	mcastPort int,
-	account types.Account,
 	cb func(*types.Neighbor, error),
 ) error {
 	conn, err := net.ListenMulticastUDP(
 		"udp6",
-		iface,
+		a.Tunnel.Interface,
 		&net.UDPAddr{
 			IP:   net.ParseIP("ff02::1"),
 			Port: mcastPort,
-			Zone: iface.Name,
+			Zone: a.Tunnel.Interface.Name,
 		},
 	)
 	if err != nil {
@@ -63,7 +62,7 @@ func (a *NeighborAPI) McastListen(
 				continue
 			}
 
-			err = sendUDP(addr, serialization.FmtHello(account))
+			err = sendUDP(addr, serialization.FmtHello(a.Tunnel))
 			if err != nil {
 				cb(nil, err)
 				continue
@@ -99,13 +98,13 @@ func (a *NeighborAPI) HelloHandler(msg []string) (*types.Neighbor, error) {
 	return neighbor, nil
 }
 
-// ControlListen listens on the ControlAddress of a given interface and passes received messages to
+// ControlListen listens on the ControlAddress and passes received messages to
 // the appropriate handler function.
 func (a *NeighborAPI) ControlListen(
-	account types.Account,
+	tunnel types.Tunnel,
 	cb func(*types.Neighbor, error),
 ) error {
-	addr, err := net.ResolveUDPAddr("udp6", account.ControlAddress)
+	addr, err := net.ResolveUDPAddr("udp6", tunnel.ControlAddress)
 	if err != nil {
 		return err
 	}
@@ -145,17 +144,15 @@ func (a *NeighborAPI) ControlListen(
 }
 
 // McastHello sends an althea_hello packet to the multicast UDP address on a given interface.
-func McastHello(
-	iface *net.Interface,
+func (a *NeighborAPI) McastHello(
 	mCastPort int,
-	account types.Account,
 	cb func(*types.Neighbor, error),
 ) error {
 	err := sendUDP(&net.UDPAddr{
 		IP:   net.ParseIP("ff02::1"),
 		Port: mCastPort,
-		Zone: iface.Name,
-	}, serialization.FmtHello(account))
+		Zone: a.Tunnel.Interface.Name,
+	}, serialization.FmtHello(a.Tunnel))
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/boltdb/bolt"
-	"github.com/jtremback/althea/types"
+	"github.com/jtremback/scrooge/types"
 )
 
 var (
@@ -40,7 +40,7 @@ func SetNeighbor(tx *bolt.Tx, neighbor *types.Neighbor) error {
 		return err
 	}
 
-	return tx.Bucket(Neighbors).Put(neighbor.ControlPubkey, b)
+	return tx.Bucket(Neighbors).Put(neighbor.ControlPublicKey, b)
 }
 
 func GetNeighbor(tx *bolt.Tx, key []byte) (*types.Neighbor, error) {

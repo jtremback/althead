@@ -6,14 +6,16 @@ import
 
 (
 	"encoding/base64"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 
+	"github.com/agl/ed25519"
 	"github.com/boltdb/bolt"
-	"github.com/jtremback/althea/neighbor-api"
-	"github.com/jtremback/althea/types"
+	"github.com/jtremback/scrooge/neighbor-api"
+	"github.com/jtremback/scrooge/types"
 )
 
 func main() {
@@ -21,13 +23,12 @@ func main() {
 	listen := flag.Bool("l", false, "Listen for hellos")
 
 	controlAddress := flag.String("controlAddress", "", "Control address to listen for communication from other nodes.")
-	controlPubkey := flag.String("controlPubkey", "", "Pubkey to sign messages to other nodes.")
-	controlPrivkey := flag.String("controlPrivkey", "", "Privkey to sign messages to other nodes.")
+	publicKey := flag.String("publicKey", "", "PublicKey to sign messages to other nodes.")
+	privateKey := flag.String("privateKey", "", "PrivateKey to sign messages to other nodes.")
 
 	ifi := flag.String("interface", "", "Physical network interface to operate on.")
-	tunnelAddress := flag.String("tunnelAddress", "", "Address that authenticated tunnel will be served on.")
-	tunnelPubkey := flag.String("tunnelPubkey", "", "Pubkey of authenticated tunnel")
-	tunnelPrivkey := flag.String("tunnelPrivkey", "", "Privkey of authenticated tunnel")
+	tunnelPublicKey := flag.String("tunnelPublicKey", "", "PublicKey of authenticated tunnel")
+	tunnelPrivateKey := flag.String("tunnelPrivateKey", "", "PrivateKey of authenticated tunnel")
 
 	flag.Parse()
 
@@ -36,22 +37,12 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	cpubkey, err := base64.StdEncoding.DecodeString(*controlPubkey)
+	pubKey, err := base64.StdEncoding.DecodeString(*publicKey)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	cprivkey, err := base64.StdEncoding.DecodeString(*controlPrivkey)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	tpubkey, err := base64.StdEncoding.DecodeString(*tunnelPubkey)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	tprivkey, err := base64.StdEncoding.DecodeString(*tunnelPrivkey)
+	privKey, err := base64.StdEncoding.DecodeString(*privateKey)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -62,25 +53,23 @@ func main() {
 	}
 	defer db.Close()
 
-	tunnel := &types.Tunnel{
-		ControlAddress: *controlAddress,
-		ControlPubkey:  cpubkey,
-		ControlPrivkey: cprivkey,
-		TunnelAddress:  *tunnelAddress,
-		TunnelPubkey:   tpubkey,
-		TunnelPrivkey:  tprivkey,
-		Interface:      iface,
-	}
-
 	neighborAPI := neighborAPI.NeighborAPI{
-		DB:     db,
-		Tunnel: tunnel,
+		Neighbors: map[[ed25519.PublicKeySize]byte]*types.Neighbor{},
+		Account: &types.Account{
+			PublicKey:        types.BytesToPublicKey(pubKey),
+			PrivateKey:       types.BytesToPrivateKey(privKey),
+			ControlAddress:   *controlAddress,
+			TunnelPublicKey:  *tunnelPublicKey,
+			TunnelPrivateKey: *tunnelPrivateKey,
+			Seqnum:           0,
+		},
 	}
 
 	if *listen {
 		log.Println("listen")
 		err := neighborAPI.McastListen(
 			8481,
+			iface,
 			func(neighbor *types.Neighbor, err error) {
 				if err != nil {
 					log.Fatalln(err)
@@ -94,6 +83,7 @@ func main() {
 		log.Println("hello")
 		neighborAPI.McastHello(
 			8481,
+			iface,
 			func(neighbor *types.Neighbor, err error) {
 				if err != nil {
 					log.Fatalln(err)
@@ -101,4 +91,23 @@ func main() {
 			},
 		)
 	}
+}
+
+func firstLinkLocalUnicast(iface *net.Interface) (*net.IP, error) {
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, addr := range addrs {
+		ip, _, err := net.ParseCIDR(addr.String())
+		if err != nil {
+			return nil, err
+		}
+
+		if ip.IsLinkLocalUnicast() {
+			return &ip, nil
+		}
+	}
+	return nil, errors.New("Could not find link local unicast ipv6 address for interface " + iface.Name)
 }

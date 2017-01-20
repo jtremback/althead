@@ -4,71 +4,70 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 
-	"github.com/jtremback/althea/ed25519-wrapper"
-	"github.com/jtremback/althea/types"
+	"strconv"
+
+	"github.com/agl/ed25519"
+	"github.com/jtremback/scrooge/types"
 )
 
-func concatByteSlices(slices ...[]byte) []byte {
-	var slice []byte
-	for _, s := range slices {
-		slice = append(slice, s...)
-	}
-	return slice
-}
-
-// althea_hello <control address> <control pubkey> <tunnel address> <tunnel pubkey> <signature>
-func FmtHello(tunnel *types.Tunnel) string {
-	sig := ed25519.Sign(tunnel.ControlPrivkey, concatByteSlices(
-		[]byte("althea_hello"),
-		[]byte(tunnel.ControlAddress),
-		tunnel.ControlPubkey,
-		[]byte(tunnel.TunnelAddress),
-		tunnel.TunnelPubkey,
-	))
-
-	return fmt.Sprintf(
-		"althea_hello %v %v %v %v %v",
-		tunnel.ControlAddress,
-		base64.StdEncoding.EncodeToString(tunnel.ControlPubkey),
-		tunnel.TunnelAddress,
-		base64.StdEncoding.EncodeToString(tunnel.TunnelPubkey),
-		base64.StdEncoding.EncodeToString(sig),
+// scrooge_hello <publicKey> <control address> <seqnum> <signature>
+func FmtHello(account *types.Account) string {
+	msg := fmt.Sprintf(
+		"scrooge_hello %v %v %v",
+		base64.StdEncoding.EncodeToString(account.PublicKey[:]),
+		account.ControlAddress,
+		account.Seqnum,
 	)
+
+	sig := ed25519.Sign(&account.PrivateKey, []byte(msg))
+
+	return msg + " " + base64.StdEncoding.EncodeToString(sig[:])
 }
 
-func ParseHello(msg []string) (*types.Neighbor, error) {
-	controlPubkey, err := base64.StdEncoding.DecodeString(msg[2])
+func FmtIHU(account *types.Account) string {
+	msg := fmt.Sprintf(
+		"scrooge_ihu %v %v %v",
+		base64.StdEncoding.EncodeToString(account.PublicKey[:]),
+		account.ControlAddress,
+		account.Seqnum,
+	)
+
+	sig := ed25519.Sign(&account.PrivateKey, []byte(msg))
+
+	return msg + " " + base64.StdEncoding.EncodeToString(sig[:])
+}
+
+func ParseHello(msg []string) (*types.HelloMessage, error) {
+	pk, err := base64.StdEncoding.DecodeString(msg[1])
 	if err != nil {
 		return nil, err
 	}
 
-	tunnelPubkey, err := base64.StdEncoding.DecodeString(msg[4])
+	s, err := base64.StdEncoding.DecodeString(msg[4])
 	if err != nil {
 		return nil, err
 	}
 
-	sig, err := base64.StdEncoding.DecodeString(msg[5])
-	if err != nil {
-		return nil, err
-	}
+	publicKey := types.BytesToPublicKey(pk)
+	sig := types.BytesToSignature(s)
 
-	neighbor := &types.Neighbor{
-		ControlAddress: msg[1],
-		ControlPubkey:  controlPubkey,
-		TunnelAddress:  msg[3],
-		TunnelPubkey:   tunnelPubkey,
-	}
-
-	if !ed25519.Verify(controlPubkey, concatByteSlices(
-		[]byte("althea_hello"),
-		[]byte(neighbor.ControlAddress),
-		neighbor.ControlPubkey,
-		[]byte(neighbor.TunnelAddress),
-		[]byte(neighbor.TunnelPubkey),
-	), sig) {
+	if !ed25519.Verify(&publicKey, []byte(strings.Join(msg[:3], " ")), &sig) {
 		return nil, errors.New("signature not valid")
 	}
 
-	return neighbor, nil
+	controlAddress := msg[2]
+
+	seqnum, err := strconv.ParseUint(msg[3], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.HelloMessage{
+		PublicKey:      publicKey,
+		Seqnum:         seqnum,
+		ControlAddress: controlAddress,
+		Signature:      sig,
+	}, nil
 }

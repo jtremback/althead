@@ -6,31 +6,31 @@ import (
 	"net"
 	"strings"
 
-	"github.com/boltdb/bolt"
-	"github.com/jtremback/althea/access"
-	"github.com/jtremback/althea/serialization"
-	"github.com/jtremback/althea/types"
+	"github.com/agl/ed25519"
+	"github.com/jtremback/scrooge/serialization"
+	"github.com/jtremback/scrooge/types"
 )
 
 type NeighborAPI struct {
-	DB     *bolt.DB
-	Tunnel *types.Tunnel
+	Neighbors map[[ed25519.PublicKeySize]byte]*types.Neighbor
+	Account   *types.Account
 }
 
 // McastListen listens on the multicast UDP address on a given interface. When it gets
-// an althea_hello packet, it calls HelloHandler and sends an althea_hello packet
+// an scrooge_hello packet, it calls HelloHandler and sends an scrooge_hello packet
 // to the ControlAddress of the Neighbor.
 func (a *NeighborAPI) McastListen(
 	mcastPort int,
+	iface *net.Interface,
 	cb func(*types.Neighbor, error),
 ) error {
 	conn, err := net.ListenMulticastUDP(
 		"udp6",
-		a.Tunnel.Interface,
+		iface,
 		&net.UDPAddr{
 			IP:   net.ParseIP("ff02::1"),
 			Port: mcastPort,
-			Zone: a.Tunnel.Interface.Name,
+			Zone: iface.Name,
 		},
 	)
 	if err != nil {
@@ -49,7 +49,7 @@ func (a *NeighborAPI) McastListen(
 
 		log.Println("received: " + string(b))
 
-		if msg[0] == "althea_hello" {
+		if msg[0] == "scrooge_hello" {
 			neighbor, err := a.HelloHandler(msg)
 			if err != nil {
 				cb(nil, err)
@@ -62,7 +62,7 @@ func (a *NeighborAPI) McastListen(
 				continue
 			}
 
-			err = sendUDP(addr, serialization.FmtHello(a.Tunnel))
+			err = sendUDP(addr, serialization.FmtHello(a.Account))
 			if err != nil {
 				cb(nil, err)
 				continue
@@ -78,22 +78,29 @@ func (a *NeighborAPI) McastListen(
 	return nil
 }
 
-// HelloHandler takes an althea_hello packet, verifies the signature,
-// parses the packet into a Neighbor struct, and updates the Neighbor on file with the new information
-// contained therein. It also updates the tunneling software. It returns the parsed Neighbor.
-// TODO: actually update tunneling software
+func (a *NeighborAPI) createTunnel() {
+
+}
+
 func (a *NeighborAPI) HelloHandler(msg []string) (*types.Neighbor, error) {
-	neighbor, err := serialization.ParseHello(msg)
+	helloMessage, err := serialization.ParseHello(msg)
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.DB.Update(func(tx *bolt.Tx) error {
-		return access.SetNeighbor(tx, neighbor)
-	})
-	if err != nil {
-		return nil, err
+	neighbor := a.Neighbors[helloMessage.PublicKey]
+	if neighbor == nil {
+		neighbor = &types.Neighbor{
+			PublicKey: helloMessage.PublicKey,
+		}
 	}
+
+	if neighbor.Seqnum > helloMessage.Seqnum {
+		return nil, errors.New("sequence number too low")
+	}
+
+	neighbor.Seqnum = helloMessage.Seqnum
+	neighbor.ControlAddress = helloMessage.ControlAddress
 
 	return neighbor, nil
 }
@@ -101,10 +108,9 @@ func (a *NeighborAPI) HelloHandler(msg []string) (*types.Neighbor, error) {
 // ControlListen listens on the ControlAddress and passes received messages to
 // the appropriate handler function.
 func (a *NeighborAPI) ControlListen(
-	tunnel types.Tunnel,
 	cb func(*types.Neighbor, error),
 ) error {
-	addr, err := net.ResolveUDPAddr("udp6", tunnel.ControlAddress)
+	addr, err := net.ResolveUDPAddr("udp6", a.Account.ControlAddress)
 	if err != nil {
 		return err
 	}
@@ -128,7 +134,7 @@ func (a *NeighborAPI) ControlListen(
 
 		log.Println("received: " + string(b))
 
-		if msg[0] == "althea_hello" {
+		if msg[0] == "scrooge_hello" {
 			_, err := a.HelloHandler(msg)
 			if err != nil {
 				cb(nil, err)
@@ -143,16 +149,17 @@ func (a *NeighborAPI) ControlListen(
 	return nil
 }
 
-// McastHello sends an althea_hello packet to the multicast UDP address on a given interface.
+// McastHello sends an scrooge_hello packet to the multicast UDP address on a given interface.
 func (a *NeighborAPI) McastHello(
 	mCastPort int,
+	iface *net.Interface,
 	cb func(*types.Neighbor, error),
 ) error {
 	err := sendUDP(&net.UDPAddr{
 		IP:   net.ParseIP("ff02::1"),
 		Port: mCastPort,
-		Zone: a.Tunnel.Interface.Name,
-	}, serialization.FmtHello(a.Tunnel))
+		Zone: iface.Name,
+	}, serialization.FmtHello(a.Account))
 	if err != nil {
 		return err
 	}
@@ -176,23 +183,4 @@ func sendUDP(
 	conn.Write([]byte(s))
 	log.Println("sent: " + s)
 	return nil
-}
-
-func firstLinkLocalUnicast(iface *net.Interface) (*net.IP, error) {
-	addrs, err := iface.Addrs()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, addr := range addrs {
-		ip, _, err := net.ParseCIDR(addr.String())
-		if err != nil {
-			return nil, err
-		}
-
-		if ip.IsLinkLocalUnicast() {
-			return &ip, nil
-		}
-	}
-	return nil, errors.New("Could not find link local unicast ipv6 address for interface " + iface.Name)
 }

@@ -6,7 +6,6 @@ import
 
 (
 	"encoding/base64"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -91,23 +90,4 @@ func main() {
 			},
 		)
 	}
-}
-
-func firstLinkLocalUnicast(iface *net.Interface) (*net.IP, error) {
-	addrs, err := iface.Addrs()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, addr := range addrs {
-		ip, _, err := net.ParseCIDR(addr.String())
-		if err != nil {
-			return nil, err
-		}
-
-		if ip.IsLinkLocalUnicast() {
-			return &ip, nil
-		}
-	}
-	return nil, errors.New("Could not find link local unicast ipv6 address for interface " + iface.Name)
 }

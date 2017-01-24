@@ -9,7 +9,7 @@ type Account struct {
 	PublicKey        [ed25519.PublicKeySize]byte
 	PrivateKey       [ed25519.PrivateKeySize]byte
 	Seqnum           uint64
-	ControlAddress   string
+	ControlAddresses map[string]string
 	TunnelPublicKey  string
 	TunnelPrivateKey string
 }
@@ -30,13 +30,26 @@ type Neighbor struct {
 }
 
 // Message types
+type MessageMetadata struct {
+	PublicKey [ed25519.PublicKeySize]byte
+	Seqnum    uint64
+	Signature [ed25519.SignatureSize]byte
+}
 
 type HelloMessage struct {
-	PublicKey      [ed25519.PublicKeySize]byte
+	MessageMetadata
 	ControlAddress string
-	Seqnum         uint64
-	Signature      [ed25519.SignatureSize]byte
 }
+
+type HelloConfirmMessage HelloMessage
+
+type TunnelMessage struct {
+	MessageMetadata
+	TunnelPublicKey string
+	TunnelEndpoint  string
+}
+
+type TunnelConfirmMessage TunnelMessage
 
 // Utils
 

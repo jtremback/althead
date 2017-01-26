@@ -12,7 +12,7 @@ import (
 	"github.com/jtremback/scrooge/types"
 )
 
-// scrooge_hello<_confirm> <publicKey> <control address> <seqnum> <signature>
+// scrooge_hello[_confirm] <publicKey> <control address> <seqnum> <signature>
 func FmtHello(
 	account *types.Account,
 	controlAddress string,
@@ -66,7 +66,7 @@ func ParseHello(msg []string) (*types.HelloMessage, error) {
 	return h, nil
 }
 
-// scrooge_tunnel<_confirm> <publicKey> <tunnel publicKey> <tunnel endpoint> <seq num> <signature>
+// scrooge_tunnel[_confirm] <publicKey> <tunnel publicKey> <tunnel endpoint> <seq num> <signature>
 func FmtTunnel(
 	account *types.Account,
 	neighbor *types.Neighbor,

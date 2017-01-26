@@ -39,17 +39,15 @@ type MessageMetadata struct {
 type HelloMessage struct {
 	MessageMetadata
 	ControlAddress string
+	Confirm        bool
 }
-
-type HelloConfirmMessage HelloMessage
 
 type TunnelMessage struct {
 	MessageMetadata
 	TunnelPublicKey string
 	TunnelEndpoint  string
+	Confirm         bool
 }
-
-type TunnelConfirmMessage TunnelMessage
 
 // Utils
 

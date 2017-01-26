@@ -119,7 +119,7 @@ func (self *NeighborAPI) SendHello(
 	addr *net.UDPAddr,
 	iface *net.Interface,
 ) error {
-	err := self.Network.SendUDP(addr, serialization.FmtHello(self.Account, iface))
+	err := self.Network.SendUDP(addr, serialization.FmtHello(self.Account, iface.Name))
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (self *NeighborAPI) SendMcastHello(
 	iface *net.Interface,
 	port int,
 ) error {
-	err := self.Network.SendMulticastUDP(iface, port, serialization.FmtHello(self.Account, iface))
+	err := self.Network.SendMulticastUDP(iface, port, serialization.FmtHello(self.Account, iface.Name))
 	if err != nil {
 		return err
 	}

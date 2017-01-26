@@ -17,14 +17,18 @@ import (
 // scrooge_hello <publicKey> <control address> <seqnum> <signature>
 func FmtHello(
 	account *types.Account,
-	iface *net.Interface,
-) string {
+	iface string,
+) (string, error) {
 	msg := types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
 			Seqnum:    account.Seqnum,
 			PublicKey: account.PublicKey,
 		},
-		ControlAddress: account.ControlAddresses[iface.Name],
+		ControlAddress: account.ControlAddresses[iface],
+	}
+
+	if len(msg.ControlAddress) == 0 {
+		return "", errors.New("invalid ControlAddress")
 	}
 
 	s := fmt.Sprintf(
@@ -36,7 +40,7 @@ func FmtHello(
 
 	sig := ed25519.Sign(&account.PrivateKey, []byte(s))
 
-	return s + " " + base64.StdEncoding.EncodeToString(sig[:])
+	return s + " " + base64.StdEncoding.EncodeToString(sig[:]), nil
 }
 
 func ParseHello(msg []string) (*types.HelloMessage, error) {

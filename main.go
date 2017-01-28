@@ -13,8 +13,8 @@ import
 
 	"github.com/agl/ed25519"
 	"github.com/boltdb/bolt"
-	"github.com/jtremback/scrooge/neighbor-api"
-	"github.com/jtremback/scrooge/types"
+	"github.com/incentivized-mesh-infrastructure/scrooge/neighbor-api"
+	"github.com/incentivized-mesh-infrastructure/scrooge/types"
 )
 
 func main() {

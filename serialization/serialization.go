@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"github.com/agl/ed25519"
-	"github.com/jtremback/scrooge/types"
+	"github.com/incentivized-mesh-infrastructure/scrooge/types"
 )
 
 // scrooge_hello[_confirm] <publicKey> <control address> <seqnum> <signature>
@@ -118,7 +118,6 @@ func ParseTunnel(msg []string) (*types.TunnelMessage, error) {
 
 	return m, nil
 }
-
 
 func verifyMessage(msg []string) (*types.MessageMetadata, error) {
 	pk, err := base64.StdEncoding.DecodeString(msg[1])

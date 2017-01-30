@@ -2,11 +2,10 @@ package neighborAPI
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"strings"
-
-	"fmt"
 
 	"github.com/agl/ed25519"
 	"github.com/incentivized-mesh-infrastructure/scrooge/serialization"
@@ -48,10 +47,11 @@ func (self *NeighborAPI) helloHandler(
 		neighbor = &types.Neighbor{
 			PublicKey: helloMessage.PublicKey,
 		}
+		self.Neighbors[helloMessage.PublicKey] = neighbor
 	}
 
-	if neighbor.Seqnum > helloMessage.Seqnum {
-		return errors.New("sequence number too low")
+	if neighbor.Seqnum >= helloMessage.Seqnum {
+		return errors.New(fmt.Sprint("sequence number too low"))
 	}
 
 	neighbor.Seqnum = helloMessage.Seqnum
@@ -61,7 +61,7 @@ func (self *NeighborAPI) helloHandler(
 	if err != nil {
 		return err
 	}
-	fmt.Println("dangus!")
+
 	err = self.SendHello(addr, iface, true)
 	if err != nil {
 		return err
@@ -74,6 +74,8 @@ func (self *NeighborAPI) SendHello(
 	iface string,
 	confirm bool,
 ) error {
+	self.Account.Seqnum = self.Account.Seqnum + 1
+
 	s, err := serialization.FmtHello(
 		self.Account,
 		self.Account.ControlAddresses[iface],
@@ -88,7 +90,7 @@ func (self *NeighborAPI) SendHello(
 		return err
 	}
 
-	self.Account.Seqnum = self.Account.Seqnum + 1
+	log.Println("sent: " + s)
 
 	return nil
 }

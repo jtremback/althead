@@ -42,7 +42,7 @@ func testFmtHello(t *testing.T, confirm bool) {
 
 	msg, err := FmtHello(acct, controlAddress1, confirm)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	var realMsg string
@@ -54,7 +54,7 @@ func testFmtHello(t *testing.T, confirm bool) {
 	}
 
 	if msg != realMsg {
-		t.Error("Message format incorrect: " + msg)
+		t.Fatal("Message format incorrect: " + msg)
 	}
 }
 
@@ -80,13 +80,13 @@ func testParseHello(t *testing.T, confirm bool) {
 		t.Fatal(err)
 	}
 	if msg.PublicKey != *pubkey1 {
-		t.Error("msg.PublicKey incorrect")
+		t.Fatal("msg.PublicKey incorrect")
 	}
 	if msg.ControlAddress != controlAddress1 {
-		t.Error("msg.ControlAddress incorrect")
+		t.Fatal("msg.ControlAddress incorrect")
 	}
 	if msg.Seqnum != seqnum1 {
-		t.Error("msg.Seqnum incorrect")
+		t.Fatal("msg.Seqnum incorrect")
 	}
 
 	var sig [ed25519.SignatureSize]byte
@@ -98,7 +98,7 @@ func testParseHello(t *testing.T, confirm bool) {
 	}
 
 	if msg.Signature != sig {
-		t.Error("msg.Signature incorrect: ", msg.Signature, sig)
+		t.Fatal("msg.Signature incorrect: ", msg.Signature, sig)
 	}
 }
 
@@ -127,7 +127,7 @@ func testFmtTunnel(t *testing.T, confirm bool) {
 
 	msg, err := FmtTunnel(acct, neigh, confirm)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	var realMsg string
@@ -139,7 +139,7 @@ func testFmtTunnel(t *testing.T, confirm bool) {
 	}
 
 	if msg != realMsg {
-		t.Error("Message format incorrect: " + msg)
+		t.Fatal("Message format incorrect: " + msg)
 	}
 }
 
@@ -165,16 +165,16 @@ func testParseTunnel(t *testing.T, confirm bool) {
 		t.Fatal(err)
 	}
 	if msg.PublicKey != *pubkey1 {
-		t.Error("msg.PublicKey incorrect")
+		t.Fatal("msg.PublicKey incorrect")
 	}
 	if msg.TunnelEndpoint != tunnelEndpoint1 {
-		t.Error("msg.TunnelEndpoint incorrect", msg.TunnelEndpoint)
+		t.Fatal("msg.TunnelEndpoint incorrect", msg.TunnelEndpoint)
 	}
 	if msg.TunnelPublicKey != tunnelPubkey1 {
-		t.Error("msg.TunnelPublicKey incorrect", msg.TunnelPublicKey)
+		t.Fatal("msg.TunnelPublicKey incorrect", msg.TunnelPublicKey)
 	}
 	if msg.Seqnum != seqnum1 {
-		t.Error("msg.Seqnum incorrect")
+		t.Fatal("msg.Seqnum incorrect")
 	}
 
 	var sig [ed25519.SignatureSize]byte
@@ -186,6 +186,6 @@ func testParseTunnel(t *testing.T, confirm bool) {
 	}
 
 	if msg.Signature != sig {
-		t.Error("msg.Signature incorrect: ", msg.Signature, sig)
+		t.Fatal("msg.Signature incorrect: ", msg.Signature, sig)
 	}
 }

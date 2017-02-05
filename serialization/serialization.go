@@ -69,7 +69,8 @@ func ParseHello(msg []string) (*types.HelloMessage, error) {
 // scrooge_tunnel[_confirm] <publicKey> <tunnel publicKey> <tunnel endpoint> <seq num> <signature>
 func FmtTunnel(
 	account *types.Account,
-	neighbor *types.Neighbor,
+	tunnelEndpoint string,
+	tunnelPublicKey string,
 	confirm bool,
 ) (string, error) {
 	msg := types.TunnelMessage{
@@ -77,8 +78,8 @@ func FmtTunnel(
 			PublicKey: account.PublicKey,
 			Seqnum:    account.Seqnum,
 		},
-		TunnelEndpoint:  neighbor.Tunnel.Endpoint,
-		TunnelPublicKey: neighbor.Tunnel.PublicKey,
+		TunnelEndpoint:  tunnelEndpoint,
+		TunnelPublicKey: tunnelPublicKey,
 		Confirm:         confirm,
 	}
 

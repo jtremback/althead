@@ -1,19 +1,14 @@
 package main
 
-import
-
-// flags "github.com/jessevdk/go-flags"
-
-(
+import (
 	"encoding/base64"
 	"flag"
-	"fmt"
 	"log"
 	"net"
 
 	"github.com/agl/ed25519"
-	"github.com/boltdb/bolt"
-	"github.com/incentivized-mesh-infrastructure/scrooge/neighbor-api"
+	"github.com/incentivized-mesh-infrastructure/scrooge/neighborAPI"
+	"github.com/incentivized-mesh-infrastructure/scrooge/network"
 	"github.com/incentivized-mesh-infrastructure/scrooge/types"
 )
 
@@ -21,11 +16,12 @@ func main() {
 
 	listen := flag.Bool("l", false, "Listen for hellos")
 
+	ifi := flag.String("interface", "", "Physical network interface to operate on.")
 	controlAddress := flag.String("controlAddress", "", "Control address to listen for communication from other nodes.")
+
 	publicKey := flag.String("publicKey", "", "PublicKey to sign messages to other nodes.")
 	privateKey := flag.String("privateKey", "", "PrivateKey to sign messages to other nodes.")
 
-	ifi := flag.String("interface", "", "Physical network interface to operate on.")
 	tunnelPublicKey := flag.String("tunnelPublicKey", "", "PublicKey of authenticated tunnel")
 	tunnelPrivateKey := flag.String("tunnelPrivateKey", "", "PrivateKey of authenticated tunnel")
 
@@ -46,48 +42,43 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	db, err := bolt.Open("main.db", 0600, nil)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer db.Close()
-
 	neighborAPI := neighborAPI.NeighborAPI{
 		Neighbors: map[[ed25519.PublicKeySize]byte]*types.Neighbor{},
 		Account: &types.Account{
-			PublicKey:        types.BytesToPublicKey(pubKey),
-			PrivateKey:       types.BytesToPrivateKey(privKey),
-			ControlAddress:   *controlAddress,
+			PublicKey:  types.BytesToPublicKey(pubKey),
+			PrivateKey: types.BytesToPrivateKey(privKey),
+			ControlAddresses: map[string]string{
+				(iface.Name): *controlAddress,
+			},
 			TunnelPublicKey:  *tunnelPublicKey,
 			TunnelPrivateKey: *tunnelPrivateKey,
 			Seqnum:           0,
 		},
 	}
 
+	network := network.Network{}
+
 	if *listen {
 		log.Println("listen")
-		err := neighborAPI.McastListen(
+		callback := func(err error) {
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
+		err := network.McastListen(
 			8481,
 			iface,
-			func(neighbor *types.Neighbor, err error) {
-				if err != nil {
-					log.Fatalln(err)
-				}
-			},
+			neighborAPI.Handlers,
+			callback,
 		)
 		if err != nil {
 			log.Fatalln(err)
 		}
 	} else {
 		log.Println("hello")
-		neighborAPI.McastHello(
-			8481,
+		neighborAPI.SendMcastHello(
 			iface,
-			func(neighbor *types.Neighbor, err error) {
-				if err != nil {
-					log.Fatalln(err)
-				}
-			},
+			8481,
 		)
 	}
 }

@@ -21,21 +21,24 @@ type NeighborAPI struct {
 	}
 }
 
-func (self *NeighborAPI) Handlers(b []byte, iface string) error {
+func (self *NeighborAPI) Handlers(
+	b []byte,
+	iface *net.Interface,
+) error {
 	msg := strings.Split(string(b), " ")
 
 	log.Println("received: " + string(b))
 
 	if msg[0] == "scrooge_hello" {
 		return self.helloHandler(msg, iface)
-	} else {
-		return errors.New("unrecognized message type")
 	}
+
+	return errors.New("unrecognized message type")
 }
 
 func (self *NeighborAPI) helloHandler(
 	msg []string,
-	iface string,
+	iface *net.Interface,
 ) error {
 	helloMessage, err := serialization.ParseHello(msg)
 	if err != nil {
@@ -71,14 +74,14 @@ func (self *NeighborAPI) helloHandler(
 
 func (self *NeighborAPI) SendHello(
 	neighAddr *net.UDPAddr,
-	iface string,
+	iface *net.Interface,
 	confirm bool,
 ) error {
 	self.Account.Seqnum = self.Account.Seqnum + 1
 
 	s, err := serialization.FmtHello(
 		self.Account,
-		self.Account.ControlAddresses[iface],
+		self.Account.ControlAddresses[iface.Name],
 		confirm,
 	)
 	if err != nil {
@@ -94,6 +97,32 @@ func (self *NeighborAPI) SendHello(
 
 	return nil
 }
+
+// func (self *NeighborAPI) SendTunnel(
+// 	neighAddr *net.UDPAddr,
+// 	iface *net.Interface,
+// 	confirm bool,
+// ) error {
+// 	self.Account.Seqnum = self.Account.Seqnum + 1
+
+// 	s, err := serialization.FmtTunnel(
+// 		self.Account,
+// 		self.Account.ControlAddresses[iface.Name],
+// 		confirm,
+// 	)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	err = self.Network.SendUDP(neighAddr, s)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	log.Println("sent: " + s)
+
+// 	return nil
+// }
 
 func (self *NeighborAPI) SendMcastHello(
 	iface *net.Interface,

@@ -19,21 +19,27 @@ var (
 	iface    = &net.Interface{
 		Name: "foo0",
 	}
-	controlAddress1 = "1.1.1.1:8000"
-	controlAddress2 = "2.2.2.2:8000"
-	account1        = &types.Account{
+	controlAddress1 = net.UDPAddr{
+		IP:   net.ParseIP("1.1.1.1"),
+		Port: 8000,
+	}
+	controlAddress2 = net.UDPAddr{
+		IP:   net.ParseIP("2.2.2.2"),
+		Port: 8000,
+	}
+	account1 = &types.Account{
 		PublicKey:  [ed25519.PublicKeySize]byte{44, 176, 80, 246, 247, 71, 5, 229, 108, 111, 158, 77, 18, 116, 98, 28, 84, 59, 215, 93, 182, 34, 240, 5, 147, 229, 211, 253, 44, 221, 237, 85},
 		PrivateKey: [ed25519.PrivateKeySize]byte{112, 69, 149, 144, 72, 233, 25, 188, 124, 215, 67, 200, 213, 237, 133, 127, 215, 253, 230, 134, 26, 202, 25, 214, 36, 19, 233, 87, 212, 169, 119, 226, 44, 176, 80, 246, 247, 71, 5, 229, 108, 111, 158, 77, 18, 116, 98, 28, 84, 59, 215, 93, 182, 34, 240, 5, 147, 229, 211, 253, 44, 221, 237, 85},
-		ControlAddresses: map[string]string{
-			(iface.Name): "1.1.1.1:8000",
+		ControlAddresses: map[string]net.UDPAddr{
+			(iface.Name): controlAddress1,
 		},
 		Seqnum: 16,
 	}
 	account2 = &types.Account{
 		PublicKey:  [ed25519.PublicKeySize]byte{175, 110, 12, 95, 82, 169, 239, 109, 41, 163, 183, 93, 77, 197, 35, 41, 35, 203, 94, 200, 216, 6, 41, 129, 170, 12, 8, 97, 211, 28, 123, 162},
 		PrivateKey: [ed25519.PrivateKeySize]byte{13, 170, 251, 93, 50, 201, 207, 72, 224, 172, 35, 48, 16, 245, 116, 20, 88, 33, 155, 12, 226, 126, 59, 36, 184, 111, 95, 87, 156, 104, 140, 243, 175, 110, 12, 95, 82, 169, 239, 109, 41, 163, 183, 93, 77, 197, 35, 41, 35, 203, 94, 200, 216, 6, 41, 129, 170, 12, 8, 97, 211, 28, 123},
-		ControlAddresses: map[string]string{
-			(iface.Name): "2.2.2.2:8000",
+		ControlAddresses: map[string]net.UDPAddr{
+			(iface.Name): controlAddress2,
 		},
 		Seqnum: 16,
 	}
@@ -56,15 +62,29 @@ func (self *fakeNetwork) SendMulticastUDP(*net.Interface, int, string) error {
 // scrooge_hello message from account1
 func TestHelloHandler(t *testing.T) {
 
-	fn := &fakeNetwork{}
+	fakeNet := &fakeNetwork{}
 
 	n := NeighborAPI{
 		Neighbors: map[[ed25519.PublicKeySize]byte]*types.Neighbor{},
 		Account:   account2,
-		Network:   fn,
+		Network:   fakeNet,
 	}
 
-	helloMessage, err := serialization.FmtHello(account1, controlAddress1, false)
+	// helloMessage, err := serialization.FmtHello(account1, controlAddress1, false)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	msg := types.HelloMessage{
+		MessageMetadata: types.MessageMetadata{
+			Seqnum:    account1.Seqnum,
+			PublicKey: account1.PublicKey,
+		},
+		ControlAddress: controlAddress1,
+		Confirm:        false,
+	}
+
+	helloMessage, err := serialization.FmtHello(msg, account1.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,15 +94,29 @@ func TestHelloHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	helloConfirmMessage, err := serialization.FmtHello(account2, controlAddress2, true)
+	msg = types.HelloMessage{
+		MessageMetadata: types.MessageMetadata{
+			Seqnum:    account2.Seqnum,
+			PublicKey: account2.PublicKey,
+		},
+		ControlAddress: controlAddress2,
+		Confirm:        true,
+	}
+
+	helloConfirmMessage, err := serialization.FmtHello(msg, account2.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	correctSendUDPArgs := controlAddress1 + helloConfirmMessage
+	// helloConfirmMessage, err := serialization.FmtHello(account2, controlAddress2, true)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
 
-	if fn.SendUDPArgs != correctSendUDPArgs {
-		t.Fatal("fn.SendUDPArgs incorrect: ", fn.SendUDPArgs, " SHOULD BE ", correctSendUDPArgs)
+	correctSendUDPArgs := fmt.Sprint(&controlAddress1, helloConfirmMessage)
+
+	if fakeNet.SendUDPArgs != correctSendUDPArgs {
+		t.Fatal("\n\nfn.SendUDPArgs incorrect: ", fakeNet.SendUDPArgs, " SHOULD BE ", correctSendUDPArgs, "\n\n")
 	}
 
 	if n.Account.Seqnum != 17 {
@@ -100,10 +134,24 @@ func TestBadSeqnum(t *testing.T) {
 	}
 
 	// We receive a message
-	helloMessage, err := serialization.FmtHello(account1, controlAddress1, false)
+	msg := types.HelloMessage{
+		MessageMetadata: types.MessageMetadata{
+			Seqnum:    account1.Seqnum,
+			PublicKey: account1.PublicKey,
+		},
+		ControlAddress: controlAddress1,
+		Confirm:        false,
+	}
+
+	helloMessage, err := serialization.FmtHello(msg, account1.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// helloMessage, err := serialization.FmtHello(account1, controlAddress1, false)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
 
 	err = n2.Handlers([]byte(helloMessage), iface)
 	if err != nil {
@@ -111,7 +159,16 @@ func TestBadSeqnum(t *testing.T) {
 	}
 
 	// Now we receive the same message without incrementing the sequence number
-	helloMessage, err = serialization.FmtHello(account1, controlAddress1, false)
+	msg = types.HelloMessage{
+		MessageMetadata: types.MessageMetadata{
+			Seqnum:    account1.Seqnum,
+			PublicKey: account1.PublicKey,
+		},
+		ControlAddress: controlAddress1,
+		Confirm:        false,
+	}
+
+	helloMessage, err = serialization.FmtHello(msg, account1.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +184,16 @@ func TestBadSeqnum(t *testing.T) {
 
 	// Now we do increment the sequence number
 	account1.Seqnum = account1.Seqnum + 1
-	helloMessage, err = serialization.FmtHello(account1, controlAddress1, false)
+	msg = types.HelloMessage{
+		MessageMetadata: types.MessageMetadata{
+			Seqnum:    account1.Seqnum,
+			PublicKey: account1.PublicKey,
+		},
+		ControlAddress: controlAddress1,
+		Confirm:        false,
+	}
+
+	helloMessage, err = serialization.FmtHello(msg, account1.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}

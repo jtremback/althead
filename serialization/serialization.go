@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 
 	"strconv"
@@ -14,23 +15,9 @@ import (
 
 // scrooge_hello[_confirm] <publicKey> <control address> <seqnum> <signature>
 func FmtHello(
-	account *types.Account,
-	controlAddress string,
-	confirm bool,
+	msg types.HelloMessage,
+	privateKey [ed25519.PrivateKeySize]byte,
 ) (string, error) {
-	msg := types.HelloMessage{
-		MessageMetadata: types.MessageMetadata{
-			Seqnum:    account.Seqnum,
-			PublicKey: account.PublicKey,
-		},
-		ControlAddress: controlAddress,
-		Confirm:        confirm,
-	}
-
-	if len(msg.ControlAddress) == 0 {
-		return "", errors.New("invalid ControlAddress")
-	}
-
 	var msgType string
 
 	if msg.Confirm {
@@ -43,11 +30,11 @@ func FmtHello(
 		"%v %v %v %v",
 		msgType,
 		base64.StdEncoding.EncodeToString(msg.PublicKey[:]),
-		msg.ControlAddress,
+		msg.ControlAddress.String(),
 		msg.Seqnum,
 	)
 
-	sig := ed25519.Sign(&account.PrivateKey, []byte(s))
+	sig := ed25519.Sign(&privateKey, []byte(s))
 
 	return s + " " + base64.StdEncoding.EncodeToString(sig[:]), nil
 }
@@ -58,9 +45,14 @@ func ParseHello(msg []string) (*types.HelloMessage, error) {
 		return nil, err
 	}
 
+	addr, err := net.ResolveUDPAddr("udp6", msg[2])
+	if err != nil {
+		return nil, err
+	}
+
 	h := &types.HelloMessage{
 		MessageMetadata: *messageMetadata,
-		ControlAddress:  msg[2],
+		ControlAddress:  *addr,
 	}
 
 	return h, nil
@@ -68,21 +60,9 @@ func ParseHello(msg []string) (*types.HelloMessage, error) {
 
 // scrooge_tunnel[_confirm] <publicKey> <tunnel publicKey> <tunnel endpoint> <seq num> <signature>
 func FmtTunnel(
-	account *types.Account,
-	tunnelEndpoint string,
-	tunnelPublicKey string,
-	confirm bool,
+	msg types.TunnelMessage,
+	privateKey [ed25519.PrivateKeySize]byte,
 ) (string, error) {
-	msg := types.TunnelMessage{
-		MessageMetadata: types.MessageMetadata{
-			PublicKey: account.PublicKey,
-			Seqnum:    account.Seqnum,
-		},
-		TunnelEndpoint:  tunnelEndpoint,
-		TunnelPublicKey: tunnelPublicKey,
-		Confirm:         confirm,
-	}
-
 	var msgType string
 
 	if msg.Confirm {
@@ -100,7 +80,7 @@ func FmtTunnel(
 		msg.Seqnum,
 	)
 
-	sig := ed25519.Sign(&account.PrivateKey, []byte(s))
+	sig := ed25519.Sign(&privateKey, []byte(s))
 
 	return s + " " + base64.StdEncoding.EncodeToString(sig[:]), nil
 }

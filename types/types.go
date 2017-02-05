@@ -9,7 +9,7 @@ type Account struct {
 	PublicKey        [ed25519.PublicKeySize]byte
 	PrivateKey       [ed25519.PrivateKeySize]byte
 	Seqnum           uint64
-	ControlAddresses map[string]string
+	ControlAddresses map[string]net.UDPAddr
 	TunnelPublicKey  string
 	TunnelPrivateKey string
 }
@@ -17,15 +17,15 @@ type Account struct {
 type Neighbor struct {
 	PublicKey      [ed25519.PublicKeySize]byte
 	Seqnum         uint64
-	ControlAddress string
+	ControlAddress net.UDPAddr
 	BillingDetails struct {
 		PaymentAddress string
 	}
 	Tunnel struct {
 		PublicKey        string
-		ListenPort       int            // Every tunnel needs to listen on a different port
-		Endpoint         string         // This is the tunnel endpoint on the Neighbor
-		VirtualInterface *net.Interface // virtual interface created by the tunnel
+		ListenPort       int           // Every tunnel needs to listen on a different port
+		Endpoint         string        // This is the tunnel endpoint on the Neighbor
+		VirtualInterface net.Interface // virtual interface created by the tunnel
 	}
 }
 
@@ -38,7 +38,7 @@ type MessageMetadata struct {
 
 type HelloMessage struct {
 	MessageMetadata
-	ControlAddress string
+	ControlAddress net.UDPAddr
 	Confirm        bool
 }
 

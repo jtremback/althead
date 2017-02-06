@@ -47,8 +47,11 @@ func main() {
 		Account: &types.Account{
 			PublicKey:  types.BytesToPublicKey(pubKey),
 			PrivateKey: types.BytesToPrivateKey(privKey),
-			ControlAddresses: map[string]string{
-				(iface.Name): *controlAddress,
+			ControlAddresses: map[string]net.UDPAddr{
+				(iface.Name): net.UDPAddr{
+					IP:   net.ParseIP(*controlAddress),
+					Port: 8000,
+				},
 			},
 			TunnelPublicKey:  *tunnelPublicKey,
 			TunnelPrivateKey: *tunnelPrivateKey,

@@ -70,11 +70,6 @@ func TestHelloHandler(t *testing.T) {
 		Network:   fakeNet,
 	}
 
-	// helloMessage, err := serialization.FmtHello(account1, controlAddress1, false)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-
 	msg := types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
 			Seqnum:    account1.Seqnum,
@@ -107,11 +102,6 @@ func TestHelloHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// helloConfirmMessage, err := serialization.FmtHello(account2, controlAddress2, true)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
 
 	correctSendUDPArgs := fmt.Sprint(&controlAddress1, helloConfirmMessage)
 
@@ -147,11 +137,6 @@ func TestBadSeqnum(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// helloMessage, err := serialization.FmtHello(account1, controlAddress1, false)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
 
 	err = n2.Handlers([]byte(helloMessage), iface)
 	if err != nil {

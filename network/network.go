@@ -1,6 +1,7 @@
 package network
 
 import (
+	"fmt"
 	"log"
 	"net"
 )
@@ -85,12 +86,12 @@ func (self *Network) SendUDP(
 	return nil
 }
 
-// McastHello sends a packet to the multicast UDP address on a given interface.
 func (self *Network) SendMulticastUDP(
 	iface *net.Interface,
 	port int,
 	s string,
 ) error {
+	fmt.Println("BAARRRRRR")
 	err := self.SendUDP(&net.UDPAddr{
 		IP:   net.ParseIP("ff02::1"),
 		Port: port,

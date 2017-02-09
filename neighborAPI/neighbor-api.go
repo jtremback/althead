@@ -120,11 +120,17 @@ func (self *NeighborAPI) SendMcastHello(
 		Confirm:        false,
 	}
 
+	fmt.Println("MESSAGE: ", msg)
+	fmt.Println("CONTROLADDRESS: ", msg.ControlAddress)
+
 	s, err := serialization.FmtHello(msg, self.Account.PrivateKey)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("STRING: ", s)
+
+	fmt.Println("FOOOOOOOO")
 	err = self.Network.SendMulticastUDP(iface, port, s)
 	if err != nil {
 		return err

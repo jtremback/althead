@@ -17,7 +17,7 @@ func main() {
 	listen := flag.Bool("l", false, "Listen for hellos")
 
 	ifi := flag.String("interface", "", "Physical network interface to operate on.")
-	controlAddress := flag.String("controlAddress", "", "Control address to listen for communication from other nodes.")
+	ctrlAddr := flag.String("controlAddress", "", "Control address to listen for communication from other nodes.")
 
 	publicKey := flag.String("publicKey", "", "PublicKey to sign messages to other nodes.")
 	privateKey := flag.String("privateKey", "", "PrivateKey to sign messages to other nodes.")
@@ -42,24 +42,23 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	controlAddress, err := net.ResolveUDPAddr("udp6", *ctrlAddr)
+
+	network := network.Network{}
+
 	neighborAPI := neighborAPI.NeighborAPI{
 		Neighbors: map[[ed25519.PublicKeySize]byte]*types.Neighbor{},
 		Account: &types.Account{
 			PublicKey:  types.BytesToPublicKey(pubKey),
 			PrivateKey: types.BytesToPrivateKey(privKey),
 			ControlAddresses: map[string]net.UDPAddr{
-				(iface.Name): net.UDPAddr{
-					IP:   net.ParseIP(*controlAddress),
-					Port: 8000,
-				},
+				(iface.Name): *controlAddress,
 			},
 			TunnelPublicKey:  *tunnelPublicKey,
 			TunnelPrivateKey: *tunnelPrivateKey,
 			Seqnum:           0,
 		},
 	}
-
-	network := network.Network{}
 
 	if *listen {
 		log.Println("listen")
@@ -79,9 +78,12 @@ func main() {
 		}
 	} else {
 		log.Println("hello")
-		neighborAPI.SendMcastHello(
+		err := neighborAPI.SendMcastHello(
 			iface,
 			8481,
 		)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 }

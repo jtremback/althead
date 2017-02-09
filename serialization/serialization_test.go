@@ -1,11 +1,14 @@
 package serialization
 
 import (
+	"encoding/base64"
 	"testing"
 
 	"strings"
 
 	"net"
+
+	"fmt"
 
 	"github.com/agl/ed25519"
 	"github.com/incentivized-mesh-infrastructure/scrooge/types"
@@ -31,6 +34,11 @@ var (
 )
 
 func TestFmtHello(t *testing.T) {
+	fmt.Println("pubkey1: ", base64.StdEncoding.EncodeToString(pubkey1[:]))
+	fmt.Println("privkey1: ", base64.StdEncoding.EncodeToString(privkey1[:]))
+	fmt.Println("pubkey2: ", base64.StdEncoding.EncodeToString(pubkey2[:]))
+	fmt.Println("privkey2: ", base64.StdEncoding.EncodeToString(privkey2[:]))
+
 	testFmtHello(t, false)
 }
 

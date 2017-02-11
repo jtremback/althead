@@ -60,14 +60,11 @@ func (self *NeighborAPI) helloHandler(
 	neighbor.Seqnum = helloMessage.Seqnum
 	neighbor.ControlAddress = helloMessage.ControlAddress
 
-	// addr, err := net.ResolveUDPAddr("udp6", neighbor.ControlAddress)
-	// if err != nil {
-	// 	return err
-	// }
-
-	err = self.SendHello(&neighbor.ControlAddress, iface, true)
-	if err != nil {
-		return err
+	if !helloMessage.Confirm {
+		err = self.SendHello(&neighbor.ControlAddress, iface, true)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

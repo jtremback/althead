@@ -1,7 +1,6 @@
 package network
 
 import (
-	"fmt"
 	"log"
 	"net"
 )
@@ -76,10 +75,11 @@ func (self *Network) SendUDP(
 		nil,
 		addr,
 	)
-	defer conn.Close()
+
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 
 	conn.Write([]byte(s))
 	log.Println("sent: " + s)
@@ -91,7 +91,6 @@ func (self *Network) SendMulticastUDP(
 	port int,
 	s string,
 ) error {
-	fmt.Println("BAARRRRRR")
 	err := self.SendUDP(&net.UDPAddr{
 		IP:   net.ParseIP("ff02::1"),
 		Port: port,

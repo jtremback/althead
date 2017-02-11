@@ -48,6 +48,7 @@ func main() {
 
 	neighborAPI := neighborAPI.NeighborAPI{
 		Neighbors: map[[ed25519.PublicKeySize]byte]*types.Neighbor{},
+		Network:   &network,
 		Account: &types.Account{
 			PublicKey:  types.BytesToPublicKey(pubKey),
 			PrivateKey: types.BytesToPrivateKey(privKey),
@@ -77,7 +78,7 @@ func main() {
 			log.Fatalln(err)
 		}
 	} else {
-		log.Println("hello")
+		log.Println("SendMcastHello")
 		err := neighborAPI.SendMcastHello(
 			iface,
 			8481,

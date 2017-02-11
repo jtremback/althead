@@ -130,7 +130,6 @@ func (self *NeighborAPI) SendMcastHello(
 
 	fmt.Println("STRING: ", s)
 
-	fmt.Println("FOOOOOOOO")
 	err = self.Network.SendMulticastUDP(iface, port, s)
 	if err != nil {
 		return err

@@ -102,6 +102,9 @@ func testParseHello(t *testing.T, confirm bool) {
 	if msg.Seqnum != seqnum1 {
 		t.Fatal("msg.Seqnum incorrect")
 	}
+	if msg.Confirm != confirm {
+		t.Fatal("Confirm incorrect")
+	}
 
 	var sig [ed25519.SignatureSize]byte
 
@@ -199,6 +202,9 @@ func testParseTunnel(t *testing.T, confirm bool) {
 	}
 	if msg.Seqnum != seqnum1 {
 		t.Fatal("msg.Seqnum incorrect")
+	}
+	if msg.Confirm != confirm {
+		t.Fatal("Confirm incorrect")
 	}
 
 	var sig [ed25519.SignatureSize]byte

@@ -58,59 +58,99 @@ func (self *fakeNetwork) SendMulticastUDP(*net.Interface, int, string) error {
 	return nil
 }
 
-// TestHelloHandler simulates account2 receiving and responding to a
-// scrooge_hello message from account1
-func TestHelloHandler(t *testing.T) {
+// TestHello simulates account2 receiving and responding to a
+// scrooge_hello message from account1, and sending a scrooge_hello_confirm
+// message back
+func TestReceiveHello(t *testing.T) {
+	fakeNet2 := &fakeNetwork{}
 
-	fakeNet := &fakeNetwork{}
-
-	n := NeighborAPI{
+	node2 := NeighborAPI{
 		Neighbors: map[[ed25519.PublicKeySize]byte]*types.Neighbor{},
 		Account:   account2,
-		Network:   fakeNet,
+		Network:   fakeNet2,
 	}
 
-	msg := types.HelloMessage{
+	helloMessage, err := serialization.FmtHello(types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
 			Seqnum:    account1.Seqnum,
 			PublicKey: account1.PublicKey,
 		},
 		ControlAddress: controlAddress1,
 		Confirm:        false,
-	}
-
-	helloMessage, err := serialization.FmtHello(msg, account1.PrivateKey)
+	}, account1.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = n.Handlers([]byte(helloMessage), iface)
+	err = node2.Handlers([]byte(helloMessage), iface)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	msg = types.HelloMessage{
+	// Make our own helloConfirmMessage to check whether it is correct
+	helloConfirmMessage, err := serialization.FmtHello(types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
 			Seqnum:    account2.Seqnum,
 			PublicKey: account2.PublicKey,
 		},
 		ControlAddress: controlAddress2,
 		Confirm:        true,
-	}
-
-	helloConfirmMessage, err := serialization.FmtHello(msg, account2.PrivateKey)
+	}, account2.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	correctSendUDPArgs := fmt.Sprint(&controlAddress1, helloConfirmMessage)
 
-	if fakeNet.SendUDPArgs != correctSendUDPArgs {
-		t.Fatal("\n\nfn.SendUDPArgs incorrect: ", fakeNet.SendUDPArgs, " SHOULD BE ", correctSendUDPArgs, "\n\n")
+	if fakeNet2.SendUDPArgs != correctSendUDPArgs {
+		t.Fatal("\n\nfn.SendUDPArgs incorrect: ", fakeNet2.SendUDPArgs, " SHOULD BE ", correctSendUDPArgs, "\n\n")
 	}
 
-	if n.Account.Seqnum != 17 {
-		t.Fatal("n.Account.Seqnum incorrect: ", n.Account.Seqnum, " SHOULD BE ", 17)
+	if node2.Account.Seqnum != 17 {
+		t.Fatal("n.Account.Seqnum incorrect: ", node2.Account.Seqnum, " SHOULD BE ", 17)
+	}
+
+}
+
+// TestReceiveHelloConfirm simulates account2 receiving and responding to a
+// scrooge_hello message from account1, and sending a scrooge_hello_confirm
+// message back
+func TestReceiveHelloConfirm(t *testing.T) {
+	fakeNet2 := &fakeNetwork{}
+
+	node2 := NeighborAPI{
+		Neighbors: map[[ed25519.PublicKeySize]byte]*types.Neighbor{},
+		Account:   account2,
+		Network:   fakeNet2,
+	}
+
+	helloConfirmMessage, err := serialization.FmtHello(types.HelloMessage{
+		MessageMetadata: types.MessageMetadata{
+			Seqnum:    account1.Seqnum,
+			PublicKey: account1.PublicKey,
+		},
+		ControlAddress: controlAddress1,
+		Confirm:        true,
+	}, account1.PrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = node2.Handlers([]byte(helloConfirmMessage), iface)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if fakeNet2.SendUDPArgs != "" {
+		t.Fatal("\n\nfn.SendUDPArgs should not exist, but it does: ", fakeNet2.SendUDPArgs, "\n\n")
+	}
+
+	if fmt.Sprint(*node2.Neighbors[account1.PublicKey]) != fmt.Sprint(types.Neighbor{
+		PublicKey:      account1.PublicKey,
+		Seqnum:         account1.Seqnum,
+		ControlAddress: controlAddress1,
+	}) {
+		t.Fatal("Stored neighbor not correct")
 	}
 }
 

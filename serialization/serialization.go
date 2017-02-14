@@ -40,6 +40,15 @@ func FmtHello(
 }
 
 func ParseHello(msg []string) (*types.HelloMessage, error) {
+	var confirm bool
+	if msg[0] == "scrooge_hello" {
+		confirm = false
+	} else if msg[0] == "scrooge_hello_confirm" {
+		confirm = true
+	} else {
+		return nil, errors.New("Not a scrooge_hello or scrooge_hello_confirm message")
+	}
+
 	messageMetadata, err := verifyMessage(msg)
 	if err != nil {
 		return nil, err
@@ -53,6 +62,7 @@ func ParseHello(msg []string) (*types.HelloMessage, error) {
 	h := &types.HelloMessage{
 		MessageMetadata: *messageMetadata,
 		ControlAddress:  *addr,
+		Confirm:         confirm,
 	}
 
 	return h, nil
@@ -86,6 +96,15 @@ func FmtTunnel(
 }
 
 func ParseTunnel(msg []string) (*types.TunnelMessage, error) {
+	var confirm bool
+	if msg[0] == "scrooge_tunnel" {
+		confirm = false
+	} else if msg[0] == "scrooge_tunnel_confirm" {
+		confirm = true
+	} else {
+		return nil, errors.New("Not a scrooge_tunnel or scrooge_tunnel_confirm message")
+	}
+
 	messageMetadata, err := verifyMessage(msg)
 	if err != nil {
 		return nil, err
@@ -95,6 +114,7 @@ func ParseTunnel(msg []string) (*types.TunnelMessage, error) {
 		MessageMetadata: *messageMetadata,
 		TunnelPublicKey: msg[2],
 		TunnelEndpoint:  msg[3],
+		Confirm:         confirm,
 	}
 
 	return m, nil

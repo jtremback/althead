@@ -29,7 +29,7 @@ func (self *NeighborAPI) Handlers(
 
 	log.Println("received: " + string(b))
 
-	if msg[0] == "scrooge_hello" {
+	if msg[0] == "scrooge_hello" || msg[0] == "scrooge_hello_confirm" {
 		return self.helloHandler(msg, iface)
 	}
 

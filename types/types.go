@@ -10,7 +10,7 @@ type Account struct {
 	PrivateKey       [ed25519.PrivateKeySize]byte
 	Seqnum           uint64
 	ControlAddresses map[string]net.UDPAddr
-	TunnelAddresses  map[string]net.UDPAddr
+	// TunnelAddresses  map[string]net.UDPAddr
 	TunnelPublicKey  string
 	TunnelPrivateKey string
 }

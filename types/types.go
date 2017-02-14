@@ -10,6 +10,7 @@ type Account struct {
 	PrivateKey       [ed25519.PrivateKeySize]byte
 	Seqnum           uint64
 	ControlAddresses map[string]net.UDPAddr
+	TunnelAddresses  map[string]net.UDPAddr
 	TunnelPublicKey  string
 	TunnelPrivateKey string
 }
@@ -21,12 +22,14 @@ type Neighbor struct {
 	BillingDetails struct {
 		PaymentAddress string
 	}
-	Tunnel struct {
-		PublicKey        string
-		ListenPort       int           // Every tunnel needs to listen on a different port
-		Endpoint         string        // This is the tunnel endpoint on the Neighbor
-		VirtualInterface net.Interface // virtual interface created by the tunnel
-	}
+	Tunnel
+}
+
+type Tunnel struct {
+	PublicKey        string
+	ListenPort       int           // Every tunnel needs to listen on a different port
+	Endpoint         string        // This is the tunnel endpoint on the Neighbor
+	VirtualInterface net.Interface // virtual interface created by the tunnel
 }
 
 // Message types

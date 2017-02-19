@@ -6,7 +6,7 @@ session = pycore.Session(persistent=True)
 node1 = session.addobj(cls=pycore.nodes.CoreNode, name="n1")
 node2 = session.addobj(cls=pycore.nodes.CoreNode, name="n2")
 hub1 = session.addobj(cls=pycore.nodes.HubNode, name="hub1")
-# rj1 = session.addobj(cls=pycore.nodes.RJ45Node, name="dummy0")
+rj1 = session.addobj(cls=pycore.nodes.RJ45Node, name="dummy0")
 node1.newnetif(hub1, ["10.0.0.1/24"])
 node2.newnetif(hub1, ["10.0.0.2/24"])
 # node1.newnetif(rj1, ["10.0.9.1/24"])
@@ -17,16 +17,11 @@ node1.nodefilecopy("scrooge", "./scrooge")
 # node1.icmd(["/vagrant/bin/dlv"])
 
 node1.icmd(["ip", "link"])
+# node1.icmd(["sudo", "modprobe", "dummy", "numdummies=1"])
+# node1.icmd(["netcat", "-l",  "4444"])
 
 node1.icmd([
     "./scrooge",
-    # "/vagrant/bin/dlv",
-    # "exec",
-    # "./scrooge",
-    # "-l",
-    # "10.0.9.1:5050",
-    # "--headless",
-    # "--",
     "-interface", "eth0",
     "-controlAddress", "10.0.0.1:8000",
     "-publicKey", "LLBQ9vdHBeVsb55NEnRiHFQ71122IvAFk+XT/Szd7VU=",

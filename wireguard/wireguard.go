@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"strings"
+	"strconv"
 
 	"errors"
 
@@ -57,7 +57,10 @@ func CreateTunnel(
 		return err
 	}
 
-	config := parseConfig(string(out))
+	config, err := ParseConfig(string(out))
+	if err != nil {
+		return err
+	}
 
 	if config.PrivateKey != tunnelPrivateKey ||
 		config.ListenPort != tunnelAddress.Port {
@@ -72,32 +75,25 @@ type WireguardConfig struct {
 	ListenPort int
 	Peer       struct {
 		PublicKey  string
-		AllowedIPs []net.IP
+		AllowedIPs string
 		Endpoint   string
 	}
 }
 
-func parseConfig(s string) WireguardConfig {
+func ParseConfig(s string) (*WireguardConfig, error) {
 	var config WireguardConfig
 
 	config.PrivateKey = findFirstSubmatch(s, "PrivateKey")
-	config.ListenPort = findFirstSubmatch(s, "ListenPort")
+	listenPort, err := strconv.ParseUint(findFirstSubmatch(s, "ListenPort"), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	config.ListenPort = int(listenPort)
 	config.Peer.PublicKey = findFirstSubmatch(s, "PublicKey")
-	config.Peer.AllowedIPs = parseIPs(findFirstSubmatch(s, "AllowedIPs"))
+	config.Peer.AllowedIPs = findFirstSubmatch(s, "AllowedIPs")
 	config.Peer.Endpoint = findFirstSubmatch(s, "Endpoint")
 
-	return config
-}
-
-func parseIPs(s string) []net.IP {
-	fields := strings.Split(s, ",")
-
-	var ips []net.IP
-	for _, field := range fields {
-		ips = append(ips, net.ParseIP(field))
-	}
-
-	return ips
+	return &config, nil
 }
 
 func findFirstSubmatch(s string, name string) string {
@@ -105,25 +101,6 @@ func findFirstSubmatch(s string, name string) string {
 	res := re.FindAllStringSubmatch(s, 1)
 	return res[0][1]
 }
-
-// func parseConfig(config string) {
-// 	re := regexp.MustCompile(`\[Interface\]`)
-// 	idxs := re.FindAllIndex([]byte(config), -1)
-// 	// strs := re.FindAllString(config, -1)
-
-// 	var prevEnd int
-
-// 	for _, idx := range idxs {
-// 		start := idx[0]
-// 		end := idx[1]
-
-// 		var body string
-// 		if prevEnd != 0 {
-// 			body = config[prevEnd:end]
-// 		}
-// 		prevEnd = end
-// 	}
-// }
 
 // [Interface]
 // PrivateKey = yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk=

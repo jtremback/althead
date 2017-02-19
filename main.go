@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 
+	"fmt"
+
 	"github.com/agl/ed25519"
 	"github.com/incentivized-mesh-infrastructure/scrooge/neighborAPI"
 	"github.com/incentivized-mesh-infrastructure/scrooge/network"
@@ -74,7 +76,9 @@ func main() {
 			neighborAPI.Handlers,
 			callback,
 		)
+		fmt.Println("derp")
 		if err != nil {
+			fmt.Println("ooops")
 			log.Fatalln(err)
 		}
 	} else {

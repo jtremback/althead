@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"strings"
 
@@ -65,6 +66,8 @@ func ParseHello(msg []string) (*types.HelloMessage, error) {
 		Confirm:         confirm,
 	}
 
+	log.Printf("parsed HelloMessage: %+v\n", h)
+
 	return h, nil
 }
 
@@ -116,6 +119,8 @@ func ParseTunnel(msg []string) (*types.TunnelMessage, error) {
 		TunnelEndpoint:  msg[3],
 		Confirm:         confirm,
 	}
+
+	log.Printf("parsed TunnelMessage: %+v\n", m)
 
 	return m, nil
 }

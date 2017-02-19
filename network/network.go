@@ -1,7 +1,6 @@
 package network
 
 import (
-	"fmt"
 	"log"
 	"net"
 )
@@ -30,13 +29,13 @@ func (self *Network) McastListen(
 
 	for {
 		var b = make([]byte, 1500)
-		num, addr, err := conn.ReadFromUDP(b)
-		fmt.Println("hello", num, addr, b)
+		offset, _, err := conn.ReadFromUDP(b)
+
 		if err != nil {
 			cb(err)
 			continue
 		}
-		cb(handlers(b, iface))
+		cb(handlers(b[:offset], iface))
 	}
 
 	return nil

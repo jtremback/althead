@@ -127,7 +127,7 @@ func (self *NeighborAPI) SendMcastHello(
 		return err
 	}
 
-	self.Account.Seqnum = self.Account.Seqnum + 1
+	log.Println("sent: " + s)
 
 	return nil
 }

@@ -46,7 +46,8 @@ var (
 )
 
 type fakeNetwork struct {
-	SendUDPArgs string
+	SendUDPArgs   string
+	MulticastPort int
 }
 
 func (self *fakeNetwork) SendUDP(addr *net.UDPAddr, s string) error {
@@ -54,7 +55,8 @@ func (self *fakeNetwork) SendUDP(addr *net.UDPAddr, s string) error {
 	return nil
 }
 
-func (self *fakeNetwork) SendMulticastUDP(*net.Interface, int, string) error {
+func (self *fakeNetwork) SendMulticastUDP(iface *net.Interface, s string) error {
+	self.SendUDPArgs = fmt.Sprint(iface, s)
 	return nil
 }
 
@@ -62,7 +64,9 @@ func (self *fakeNetwork) SendMulticastUDP(*net.Interface, int, string) error {
 // scrooge_hello message from account1, and sending a scrooge_hello_confirm
 // message back
 func TestReceiveHello(t *testing.T) {
-	fakeNet2 := &fakeNetwork{}
+	fakeNet2 := &fakeNetwork{
+		MulticastPort: 8481,
+	}
 
 	node2 := NeighborAPI{
 		Neighbors: map[[ed25519.PublicKeySize]byte]*types.Neighbor{},
@@ -100,7 +104,7 @@ func TestReceiveHello(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	correctSendUDPArgs := fmt.Sprint(&controlAddress1, helloConfirmMessage)
+	correctSendUDPArgs := fmt.Sprint(iface, helloConfirmMessage)
 
 	if fakeNet2.SendUDPArgs != correctSendUDPArgs {
 		t.Fatal("\n\nfn.SendUDPArgs incorrect: ", fakeNet2.SendUDPArgs, " SHOULD BE ", correctSendUDPArgs, "\n\n")

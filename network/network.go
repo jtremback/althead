@@ -42,31 +42,31 @@ func (self *Network) McastListen(
 	return nil
 }
 
-func (self *Network) UnicastListen(
-	addr *net.UDPAddr,
-	iface *net.Interface,
-	handlers func([]byte, *net.Interface) error,
-	cb func(error),
-) error {
-	conn, err := net.ListenUDP("udp6", addr)
-	if err != nil {
-		return err
-	}
+// func (self *Network) UnicastListen(
+// 	addr *net.UDPAddr,
+// 	iface *net.Interface,
+// 	handlers func([]byte, *net.Interface) error,
+// 	cb func(error),
+// ) error {
+// 	conn, err := net.ListenUDP("udp6", addr)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	defer conn.Close()
+// 	defer conn.Close()
 
-	for {
-		var b []byte
-		_, _, err := conn.ReadFromUDP(b)
-		if err != nil {
-			cb(err)
-			continue
-		}
-		cb(handlers(b, iface))
-	}
+// 	for {
+// 		var b []byte
+// 		_, _, err := conn.ReadFromUDP(b)
+// 		if err != nil {
+// 			cb(err)
+// 			continue
+// 		}
+// 		cb(handlers(b, iface))
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func (self *Network) SendUDP(
 	addr *net.UDPAddr,

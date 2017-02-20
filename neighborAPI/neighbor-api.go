@@ -69,37 +69,37 @@ func (self *NeighborAPI) helloHandler(
 	return nil
 }
 
-func (self *NeighborAPI) SendHello(
-	neighAddr *net.UDPAddr,
-	iface *net.Interface,
-	confirm bool,
-) error {
-	self.Account.Seqnum = self.Account.Seqnum + 1
-	controlAddress := self.Account.ControlAddresses[iface.Name]
+// func (self *NeighborAPI) SendHello(
+// 	neighAddr *net.UDPAddr,
+// 	iface *net.Interface,
+// 	confirm bool,
+// ) error {
+// 	self.Account.Seqnum = self.Account.Seqnum + 1
+// 	controlAddress := self.Account.ControlAddresses[iface.Name]
 
-	msg := types.HelloMessage{
-		MessageMetadata: types.MessageMetadata{
-			Seqnum:    self.Account.Seqnum,
-			PublicKey: self.Account.PublicKey,
-		},
-		ControlAddress: controlAddress,
-		Confirm:        confirm,
-	}
+// 	msg := types.HelloMessage{
+// 		MessageMetadata: types.MessageMetadata{
+// 			Seqnum:    self.Account.Seqnum,
+// 			PublicKey: self.Account.PublicKey,
+// 		},
+// 		ControlAddress: controlAddress,
+// 		Confirm:        confirm,
+// 	}
 
-	s, err := serialization.FmtHello(msg, self.Account.PrivateKey)
-	if err != nil {
-		return err
-	}
+// 	s, err := serialization.FmtHello(msg, self.Account.PrivateKey)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	err = self.Network.SendUDP(neighAddr, s)
-	if err != nil {
-		return err
-	}
+// 	err = self.Network.SendUDP(neighAddr, s)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	log.Println("sent: " + s)
+// 	log.Println("sent: " + s)
 
-	return nil
-}
+// 	return nil
+// }
 
 func (self *NeighborAPI) SendMcastHello(
 	iface *net.Interface,

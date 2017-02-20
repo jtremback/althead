@@ -17,7 +17,7 @@ type NeighborAPI struct {
 	Account   *types.Account
 	Network   interface {
 		SendUDP(*net.UDPAddr, string) error
-		SendMulticastUDP(*net.Interface, int, string) error
+		SendMulticastUDP(*net.Interface, string) error
 	}
 }
 
@@ -61,7 +61,7 @@ func (self *NeighborAPI) helloHandler(
 	neighbor.ControlAddress = helloMessage.ControlAddress
 
 	if !helloMessage.Confirm {
-		err = self.SendHello(&neighbor.ControlAddress, iface, true)
+		err = self.SendMcastHello(iface, true)
 		if err != nil {
 			return err
 		}
@@ -103,7 +103,7 @@ func (self *NeighborAPI) SendHello(
 
 func (self *NeighborAPI) SendMcastHello(
 	iface *net.Interface,
-	port int,
+	confirm bool,
 ) error {
 	self.Account.Seqnum = self.Account.Seqnum + 1
 	controlAddress := self.Account.ControlAddresses[iface.Name]
@@ -114,7 +114,7 @@ func (self *NeighborAPI) SendMcastHello(
 			PublicKey: self.Account.PublicKey,
 		},
 		ControlAddress: controlAddress,
-		Confirm:        false,
+		Confirm:        confirm,
 	}
 
 	s, err := serialization.FmtHello(msg, self.Account.PrivateKey)
@@ -122,7 +122,7 @@ func (self *NeighborAPI) SendMcastHello(
 		return err
 	}
 
-	err = self.Network.SendMulticastUDP(iface, port, s)
+	err = self.Network.SendMulticastUDP(iface, s)
 	if err != nil {
 		return err
 	}

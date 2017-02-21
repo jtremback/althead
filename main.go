@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	genkeys := flag.Bool("genkeys", false, "Listen for hellos")
+	genkeys := flag.Bool("genkeys", false, "Generate encryption keys and quit")
 
 	ifi := flag.String("interface", "", "Physical network interface to operate on.")
 
@@ -83,8 +83,6 @@ wireguard privkey: %v
 			},
 		}
 
-		// if *listen {
-		log.Println("listen")
 		callback := func(err error) {
 			if err != nil {
 				log.Fatalln(err)
@@ -96,9 +94,7 @@ wireguard privkey: %v
 			callback,
 		)
 
-		// } else {
-		log.Println("SendMcastHello")
-		err = neighborAPI.SendMcastHello(
+		err = neighborAPI.SendHelloMsg(
 			iface,
 			false,
 		)

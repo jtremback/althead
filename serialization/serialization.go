@@ -14,7 +14,7 @@ import (
 )
 
 // scrooge_hello[_confirm] <SourcePublicKey> <seqnum> <signature>
-func FmtHello(
+func FmtHelloMsg(
 	msg types.HelloMessage,
 	privateKey [ed25519.PrivateKeySize]byte,
 ) (string, error) {
@@ -38,7 +38,7 @@ func FmtHello(
 	return s + " " + base64.StdEncoding.EncodeToString(sig[:]), nil
 }
 
-func ParseHello(msg []string) (*types.HelloMessage, error) {
+func ParseHelloMsg(msg []string) (*types.HelloMessage, error) {
 	var confirm bool
 	if msg[0] == "scrooge_hello" {
 		confirm = false
@@ -64,7 +64,7 @@ func ParseHello(msg []string) (*types.HelloMessage, error) {
 }
 
 // scrooge_tunnel[_confirm] <sourcePublicKey> <destinationPublicKey> <tunnel publicKey> <tunnel endpoint> <seq num> <signature>
-func FmtTunnel(
+func FmtTunnelMsg(
 	msg types.TunnelMessage,
 	privateKey [ed25519.PrivateKeySize]byte,
 ) (string, error) {
@@ -91,7 +91,7 @@ func FmtTunnel(
 	return s + " " + base64.StdEncoding.EncodeToString(sig[:]), nil
 }
 
-func ParseTunnel(msg []string) (*types.TunnelMessage, error) {
+func ParseTunnelMsg(msg []string) (*types.TunnelMessage, error) {
 	var confirm bool
 	if msg[0] == "scrooge_tunnel" {
 		confirm = false

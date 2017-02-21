@@ -50,7 +50,7 @@ func testFmtHello(t *testing.T, confirm bool) {
 		Confirm: confirm,
 	}
 
-	s, err := FmtHello(msg, acct.PrivateKey)
+	s, err := FmtHelloMsg(msg, acct.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func testParseHello(t *testing.T, confirm bool) {
 		realMsg = helloMessage
 	}
 
-	msg, err := ParseHello(strings.Split(realMsg, " "))
+	msg, err := ParseHelloMsg(strings.Split(realMsg, " "))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func testFmtTunnel(t *testing.T, confirm bool) {
 		Confirm:         confirm,
 	}
 
-	s, err := FmtTunnel(msg, acct.PrivateKey)
+	s, err := FmtTunnelMsg(msg, acct.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +181,7 @@ func testParseTunnel(t *testing.T, confirm bool) {
 		realMsg = tunnelMessage
 	}
 
-	msg, err := ParseTunnel(strings.Split(realMsg, " "))
+	msg, err := ParseTunnelMsg(strings.Split(realMsg, " "))
 	if err != nil {
 		t.Fatal(err)
 	}

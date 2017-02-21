@@ -60,7 +60,7 @@ func TestReceiveHello(t *testing.T) {
 		Network:   fakeNet2,
 	}
 
-	helloMessage, err := serialization.FmtHello(types.HelloMessage{
+	helloMessage, err := serialization.FmtHelloMsg(types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
 			Seqnum:          account1.Seqnum,
 			SourcePublicKey: account1.PublicKey,
@@ -77,7 +77,7 @@ func TestReceiveHello(t *testing.T) {
 	}
 
 	// Make our own helloConfirmMessage to check whether it is correct
-	helloConfirmMessage, err := serialization.FmtHello(types.HelloMessage{
+	helloConfirmMessage, err := serialization.FmtHelloMsg(types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
 			Seqnum:          account2.Seqnum,
 			SourcePublicKey: account2.PublicKey,
@@ -112,7 +112,7 @@ func TestReceiveHelloConfirm(t *testing.T) {
 		Network:   fakeNet2,
 	}
 
-	helloConfirmMessage, err := serialization.FmtHello(types.HelloMessage{
+	helloConfirmMessage, err := serialization.FmtHelloMsg(types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
 			Seqnum:          account1.Seqnum,
 			SourcePublicKey: account1.PublicKey,
@@ -158,7 +158,7 @@ func TestBadSeqnum(t *testing.T) {
 		Confirm: false,
 	}
 
-	helloMessage, err := serialization.FmtHello(msg, account1.PrivateKey)
+	helloMessage, err := serialization.FmtHelloMsg(msg, account1.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +177,7 @@ func TestBadSeqnum(t *testing.T) {
 		Confirm: false,
 	}
 
-	helloMessage, err = serialization.FmtHello(msg, account1.PrivateKey)
+	helloMessage, err = serialization.FmtHelloMsg(msg, account1.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +201,7 @@ func TestBadSeqnum(t *testing.T) {
 		Confirm: false,
 	}
 
-	helloMessage, err = serialization.FmtHello(msg, account1.PrivateKey)
+	helloMessage, err = serialization.FmtHelloMsg(msg, account1.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}

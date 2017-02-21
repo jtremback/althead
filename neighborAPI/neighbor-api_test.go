@@ -76,8 +76,8 @@ func TestReceiveHello(t *testing.T) {
 
 	helloMessage, err := serialization.FmtHello(types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
-			Seqnum:    account1.Seqnum,
-			PublicKey: account1.PublicKey,
+			Seqnum:          account1.Seqnum,
+			SourcePublicKey: account1.PublicKey,
 		},
 		ControlAddress: controlAddress1,
 		Confirm:        false,
@@ -94,8 +94,8 @@ func TestReceiveHello(t *testing.T) {
 	// Make our own helloConfirmMessage to check whether it is correct
 	helloConfirmMessage, err := serialization.FmtHello(types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
-			Seqnum:    account2.Seqnum,
-			PublicKey: account2.PublicKey,
+			Seqnum:          account2.Seqnum,
+			SourcePublicKey: account2.PublicKey,
 		},
 		ControlAddress: controlAddress2,
 		Confirm:        true,
@@ -130,8 +130,8 @@ func TestReceiveHelloConfirm(t *testing.T) {
 
 	helloConfirmMessage, err := serialization.FmtHello(types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
-			Seqnum:    account1.Seqnum,
-			PublicKey: account1.PublicKey,
+			Seqnum:          account1.Seqnum,
+			SourcePublicKey: account1.PublicKey,
 		},
 		ControlAddress: controlAddress1,
 		Confirm:        true,
@@ -170,8 +170,8 @@ func TestBadSeqnum(t *testing.T) {
 	// We receive a message
 	msg := types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
-			Seqnum:    account1.Seqnum,
-			PublicKey: account1.PublicKey,
+			Seqnum:          account1.Seqnum,
+			SourcePublicKey: account1.PublicKey,
 		},
 		ControlAddress: controlAddress1,
 		Confirm:        false,
@@ -190,8 +190,8 @@ func TestBadSeqnum(t *testing.T) {
 	// Now we receive the same message without incrementing the sequence number
 	msg = types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
-			Seqnum:    account1.Seqnum,
-			PublicKey: account1.PublicKey,
+			Seqnum:          account1.Seqnum,
+			SourcePublicKey: account1.PublicKey,
 		},
 		ControlAddress: controlAddress1,
 		Confirm:        false,
@@ -215,8 +215,8 @@ func TestBadSeqnum(t *testing.T) {
 	account1.Seqnum = account1.Seqnum + 1
 	msg = types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
-			Seqnum:    account1.Seqnum,
-			PublicKey: account1.PublicKey,
+			Seqnum:          account1.Seqnum,
+			SourcePublicKey: account1.PublicKey,
 		},
 		ControlAddress: controlAddress1,
 		Confirm:        false,

@@ -34,9 +34,10 @@ type Tunnel struct {
 
 // Message types
 type MessageMetadata struct {
-	PublicKey [ed25519.PublicKeySize]byte
-	Seqnum    uint64
-	Signature [ed25519.SignatureSize]byte
+	SourcePublicKey      [ed25519.PublicKeySize]byte
+	DestinationPublicKey [ed25519.PublicKeySize]byte
+	Seqnum               uint64
+	Signature            [ed25519.SignatureSize]byte
 }
 
 type HelloMessage struct {

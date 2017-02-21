@@ -45,12 +45,12 @@ func (self *NeighborAPI) helloHandler(
 		return err
 	}
 
-	neighbor := self.Neighbors[helloMessage.PublicKey]
+	neighbor := self.Neighbors[helloMessage.SourcePublicKey]
 	if neighbor == nil {
 		neighbor = &types.Neighbor{
-			PublicKey: helloMessage.PublicKey,
+			PublicKey: helloMessage.SourcePublicKey,
 		}
-		self.Neighbors[helloMessage.PublicKey] = neighbor
+		self.Neighbors[helloMessage.SourcePublicKey] = neighbor
 	}
 
 	if neighbor.Seqnum >= helloMessage.Seqnum {
@@ -110,8 +110,8 @@ func (self *NeighborAPI) SendMcastHello(
 
 	msg := types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
-			Seqnum:    self.Account.Seqnum,
-			PublicKey: self.Account.PublicKey,
+			Seqnum:          self.Account.Seqnum,
+			SourcePublicKey: self.Account.PublicKey,
 		},
 		ControlAddress: controlAddress,
 		Confirm:        confirm,
@@ -142,8 +142,9 @@ func (self *NeighborAPI) SendTunnel(
 
 	msg := types.TunnelMessage{
 		MessageMetadata: types.MessageMetadata{
-			PublicKey: self.Account.PublicKey,
-			Seqnum:    self.Account.Seqnum,
+			SourcePublicKey:      self.Account.PublicKey,
+			DestinationPublicKey: neighborPublicKey,
+			Seqnum:               self.Account.Seqnum,
 		},
 		TunnelEndpoint:  neighbor.Tunnel.Endpoint,
 		TunnelPublicKey: neighbor.Tunnel.PublicKey,

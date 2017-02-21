@@ -14,7 +14,7 @@ import (
 	"github.com/incentivized-mesh-infrastructure/scrooge/types"
 )
 
-// scrooge_hello[_confirm] <publicKey> <control address> <seqnum> <signature>
+// scrooge_hello[_confirm] <SourcePublicKey> <control address> <seqnum> <signature>
 func FmtHello(
 	msg types.HelloMessage,
 	privateKey [ed25519.PrivateKeySize]byte,
@@ -30,7 +30,7 @@ func FmtHello(
 	s := fmt.Sprintf(
 		"%v %v %v %v",
 		msgType,
-		base64.StdEncoding.EncodeToString(msg.PublicKey[:]),
+		base64.StdEncoding.EncodeToString(msg.SourcePublicKey[:]),
 		msg.ControlAddress.String(),
 		msg.Seqnum,
 	)
@@ -50,7 +50,7 @@ func ParseHello(msg []string) (*types.HelloMessage, error) {
 		return nil, errors.New("Not a scrooge_hello or scrooge_hello_confirm message")
 	}
 
-	messageMetadata, err := verifyMessage(msg)
+	messageMetadata, err := verifyMessage(msg, true)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func ParseHello(msg []string) (*types.HelloMessage, error) {
 	return h, nil
 }
 
-// scrooge_tunnel[_confirm] <publicKey> <tunnel publicKey> <tunnel endpoint> <seq num> <signature>
+// scrooge_tunnel[_confirm] <sourcePublicKey> <destinationPublicKey> <tunnel publicKey> <tunnel endpoint> <seq num> <signature>
 func FmtTunnel(
 	msg types.TunnelMessage,
 	privateKey [ed25519.PrivateKeySize]byte,
@@ -85,9 +85,10 @@ func FmtTunnel(
 	}
 
 	s := fmt.Sprintf(
-		"%v %v %v %v %v",
+		"%v %v %v %v %v %v",
 		msgType,
-		base64.StdEncoding.EncodeToString(msg.PublicKey[:]),
+		base64.StdEncoding.EncodeToString(msg.SourcePublicKey[:]),
+		base64.StdEncoding.EncodeToString(msg.DestinationPublicKey[:]),
 		msg.TunnelPublicKey,
 		msg.TunnelEndpoint,
 		msg.Seqnum,
@@ -108,15 +109,15 @@ func ParseTunnel(msg []string) (*types.TunnelMessage, error) {
 		return nil, errors.New("Not a scrooge_tunnel or scrooge_tunnel_confirm message")
 	}
 
-	messageMetadata, err := verifyMessage(msg)
+	messageMetadata, err := verifyMessage(msg, false)
 	if err != nil {
 		return nil, err
 	}
 
 	m := &types.TunnelMessage{
 		MessageMetadata: *messageMetadata,
-		TunnelPublicKey: msg[2],
-		TunnelEndpoint:  msg[3],
+		TunnelPublicKey: msg[3],
+		TunnelEndpoint:  msg[4],
 		Confirm:         confirm,
 	}
 
@@ -125,23 +126,33 @@ func ParseTunnel(msg []string) (*types.TunnelMessage, error) {
 	return m, nil
 }
 
-func verifyMessage(msg []string) (*types.MessageMetadata, error) {
-	pk, err := base64.StdEncoding.DecodeString(msg[1])
-	if err != nil {
-		return nil, err
-	}
-
+func verifyMessage(msg []string, broadcast bool) (*types.MessageMetadata, error) {
 	sig, err := base64.StdEncoding.DecodeString(msg[len(msg)-1])
 	if err != nil {
 		return nil, err
 	}
 
-	publicKey := types.BytesToPublicKey(pk)
+	spk, err := base64.StdEncoding.DecodeString(msg[1])
+	if err != nil {
+		return nil, err
+	}
+
+	var destinationPublicKey [ed25519.PublicKeySize]byte
+
+	if !broadcast {
+		dpk, err := base64.StdEncoding.DecodeString(msg[1])
+		if err != nil {
+			return nil, err
+		}
+		destinationPublicKey = types.BytesToPublicKey(dpk)
+	}
+
+	sourcePublicKey := types.BytesToPublicKey(spk)
 	signature := types.BytesToSignature(sig)
 
 	msgWithOutSig := strings.Join(msg[:len(msg)-1], " ")
 
-	if !ed25519.Verify(&publicKey, []byte(msgWithOutSig), &signature) {
+	if !ed25519.Verify(&sourcePublicKey, []byte(msgWithOutSig), &signature) {
 		return nil, errors.New("signature not valid")
 	}
 
@@ -151,9 +162,10 @@ func verifyMessage(msg []string) (*types.MessageMetadata, error) {
 	}
 
 	messageMetadata := types.MessageMetadata{
-		PublicKey: publicKey,
-		Seqnum:    seqnum,
-		Signature: signature,
+		SourcePublicKey:      sourcePublicKey,
+		DestinationPublicKey: destinationPublicKey,
+		Seqnum:               seqnum,
+		Signature:            signature,
 	}
 
 	return &messageMetadata, nil

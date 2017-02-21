@@ -18,7 +18,6 @@ func main() {
 	genkeys := flag.Bool("genkeys", false, "Listen for hellos")
 
 	ifi := flag.String("interface", "", "Physical network interface to operate on.")
-	ctrlAddr := flag.String("controlAddress", "", "Control address to listen for communication from other nodes.")
 
 	publicKey := flag.String("publicKey", "", "PublicKey to sign messages to other nodes.")
 	privateKey := flag.String("privateKey", "", "PrivateKey to sign messages to other nodes.")
@@ -68,8 +67,6 @@ wireguard privkey: %v
 			log.Fatalln(err)
 		}
 
-		controlAddress, err := net.ResolveUDPAddr("udp6", *ctrlAddr)
-
 		network := network.Network{
 			MulticastPort: 8481,
 		}
@@ -78,11 +75,8 @@ wireguard privkey: %v
 			Neighbors: map[[ed25519.PublicKeySize]byte]*types.Neighbor{},
 			Network:   &network,
 			Account: &types.Account{
-				PublicKey:  types.BytesToPublicKey(pubKey),
-				PrivateKey: types.BytesToPrivateKey(privKey),
-				ControlAddresses: map[string]net.UDPAddr{
-					(iface.Name): *controlAddress,
-				},
+				PublicKey:        types.BytesToPublicKey(pubKey),
+				PrivateKey:       types.BytesToPrivateKey(privKey),
 				TunnelPublicKey:  *tunnelPublicKey,
 				TunnelPrivateKey: *tunnelPrivateKey,
 				Seqnum:           0,

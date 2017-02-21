@@ -58,7 +58,6 @@ func (self *NeighborAPI) helloHandler(
 	}
 
 	neighbor.Seqnum = helloMessage.Seqnum
-	neighbor.ControlAddress = helloMessage.ControlAddress
 
 	if !helloMessage.Confirm {
 		err = self.SendMcastHello(iface, true)
@@ -75,14 +74,12 @@ func (self *NeighborAPI) helloHandler(
 // 	confirm bool,
 // ) error {
 // 	self.Account.Seqnum = self.Account.Seqnum + 1
-// 	controlAddress := self.Account.ControlAddresses[iface.Name]
 
 // 	msg := types.HelloMessage{
 // 		MessageMetadata: types.MessageMetadata{
 // 			Seqnum:    self.Account.Seqnum,
 // 			PublicKey: self.Account.PublicKey,
 // 		},
-// 		ControlAddress: controlAddress,
 // 		Confirm:        confirm,
 // 	}
 
@@ -106,15 +103,13 @@ func (self *NeighborAPI) SendMcastHello(
 	confirm bool,
 ) error {
 	self.Account.Seqnum = self.Account.Seqnum + 1
-	controlAddress := self.Account.ControlAddresses[iface.Name]
 
 	msg := types.HelloMessage{
 		MessageMetadata: types.MessageMetadata{
 			Seqnum:          self.Account.Seqnum,
 			SourcePublicKey: self.Account.PublicKey,
 		},
-		ControlAddress: controlAddress,
-		Confirm:        confirm,
+		Confirm: confirm,
 	}
 
 	s, err := serialization.FmtHello(msg, self.Account.PrivateKey)
@@ -159,7 +154,7 @@ func (self *NeighborAPI) SendTunnel(
 		return err
 	}
 
-	err = self.Network.SendUDP(&neighbor.ControlAddress, s)
+	err = self.Network.SendMulticastUDP(iface, s)
 	if err != nil {
 		return err
 	}

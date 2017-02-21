@@ -6,10 +6,9 @@ import "github.com/agl/ed25519"
 // Internal types
 
 type Account struct {
-	PublicKey        [ed25519.PublicKeySize]byte
-	PrivateKey       [ed25519.PrivateKeySize]byte
-	Seqnum           uint64
-	ControlAddresses map[string]net.UDPAddr
+	PublicKey  [ed25519.PublicKeySize]byte
+	PrivateKey [ed25519.PrivateKeySize]byte
+	Seqnum     uint64
 	// TunnelAddresses  map[string]net.UDPAddr
 	TunnelPublicKey  string
 	TunnelPrivateKey string
@@ -18,7 +17,6 @@ type Account struct {
 type Neighbor struct {
 	PublicKey      [ed25519.PublicKeySize]byte
 	Seqnum         uint64
-	ControlAddress net.UDPAddr
 	BillingDetails struct {
 		PaymentAddress string
 	}
@@ -42,8 +40,7 @@ type MessageMetadata struct {
 
 type HelloMessage struct {
 	MessageMetadata
-	ControlAddress net.UDPAddr
-	Confirm        bool
+	Confirm bool
 }
 
 type TunnelMessage struct {

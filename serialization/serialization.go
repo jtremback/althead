@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
 	"strings"
 
 	"strconv"
@@ -14,7 +13,7 @@ import (
 	"github.com/incentivized-mesh-infrastructure/scrooge/types"
 )
 
-// scrooge_hello[_confirm] <SourcePublicKey> <control address> <seqnum> <signature>
+// scrooge_hello[_confirm] <SourcePublicKey> <seqnum> <signature>
 func FmtHello(
 	msg types.HelloMessage,
 	privateKey [ed25519.PrivateKeySize]byte,
@@ -28,10 +27,9 @@ func FmtHello(
 	}
 
 	s := fmt.Sprintf(
-		"%v %v %v %v",
+		"%v %v %v",
 		msgType,
 		base64.StdEncoding.EncodeToString(msg.SourcePublicKey[:]),
-		msg.ControlAddress.String(),
 		msg.Seqnum,
 	)
 
@@ -55,14 +53,8 @@ func ParseHello(msg []string) (*types.HelloMessage, error) {
 		return nil, err
 	}
 
-	addr, err := net.ResolveUDPAddr("udp6", msg[2])
-	if err != nil {
-		return nil, err
-	}
-
 	h := &types.HelloMessage{
 		MessageMetadata: *messageMetadata,
-		ControlAddress:  *addr,
 		Confirm:         confirm,
 	}
 

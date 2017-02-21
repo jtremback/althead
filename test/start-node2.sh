@@ -2,7 +2,6 @@
 
 ./scrooge \
 -interface eth0 \
--controlAddress 10.0.0.2:8000 \
 -publicKey Mb/gfAOEv8vHpwQoXmgU7wNE2Xpn5wa7gWxdsu2EXMo= \
 -privateKey 1cbEVvM7bhhcoqP9p9tr8dk0MGbfY3toS8VzoLnEdFkxv+B8A4S/y8enBCheaBTvA0TZemfnBruBbF2y7YRcyg== \
 -tunnelPublicKey HZB8BT0LToT2W+HsVQG5hlXSbaphC193uwLkv7rwJVA= \

@@ -38,17 +38,8 @@ func FmtHelloMsg(
 	return s + " " + base64.StdEncoding.EncodeToString(sig[:]), nil
 }
 
-func ParseHelloMsg(msg []string) (*types.HelloMessage, error) {
-	var confirm bool
-	if msg[0] == "scrooge_hello" {
-		confirm = false
-	} else if msg[0] == "scrooge_hello_confirm" {
-		confirm = true
-	} else {
-		return nil, errors.New("Not a scrooge_hello or scrooge_hello_confirm message")
-	}
-
-	messageMetadata, err := verifyMessage(msg, true)
+func ParseHelloMsg(msg []string, confirm bool) (*types.HelloMessage, error) {
+	messageMetadata, err := verifyMessage(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -91,17 +82,8 @@ func FmtTunnelMsg(
 	return s + " " + base64.StdEncoding.EncodeToString(sig[:]), nil
 }
 
-func ParseTunnelMsg(msg []string) (*types.TunnelMessage, error) {
-	var confirm bool
-	if msg[0] == "scrooge_tunnel" {
-		confirm = false
-	} else if msg[0] == "scrooge_tunnel_confirm" {
-		confirm = true
-	} else {
-		return nil, errors.New("Not a scrooge_tunnel or scrooge_tunnel_confirm message")
-	}
-
-	messageMetadata, err := verifyMessage(msg, false)
+func ParseTunnelMsg(msg []string, confirm bool) (*types.TunnelMessage, error) {
+	messageMetadata, err := verifyMessage(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -118,32 +100,29 @@ func ParseTunnelMsg(msg []string) (*types.TunnelMessage, error) {
 	return m, nil
 }
 
-func verifyMessage(msg []string, broadcast bool) (*types.MessageMetadata, error) {
+func verifyMessage(msg []string) (*types.MessageMetadata, error) {
 	sig, err := base64.StdEncoding.DecodeString(msg[len(msg)-1])
 	if err != nil {
 		return nil, err
 	}
+	signature := types.BytesToSignature(sig)
 
 	spk, err := base64.StdEncoding.DecodeString(msg[1])
 	if err != nil {
 		return nil, err
 	}
+	sourcePublicKey := types.BytesToPublicKey(spk)
 
 	var destinationPublicKey [ed25519.PublicKeySize]byte
-
-	if !broadcast {
-		dpk, err := base64.StdEncoding.DecodeString(msg[1])
+	if msg[2] != "0" {
+		dpk, err := base64.StdEncoding.DecodeString(msg[2])
 		if err != nil {
 			return nil, err
 		}
 		destinationPublicKey = types.BytesToPublicKey(dpk)
 	}
 
-	sourcePublicKey := types.BytesToPublicKey(spk)
-	signature := types.BytesToSignature(sig)
-
 	msgWithOutSig := strings.Join(msg[:len(msg)-1], " ")
-
 	if !ed25519.Verify(&sourcePublicKey, []byte(msgWithOutSig), &signature) {
 		return nil, errors.New("signature not valid")
 	}

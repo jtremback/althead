@@ -29,12 +29,15 @@ func (self *NeighborAPI) Handlers(
 
 	log.Println("received: " + string(b))
 
-	if msg[0] == "scrooge_hello" || msg[0] == "scrooge_hello_confirm" {
-		return self.helloMsgHandler(msg, iface)
-	}
-
-	if msg[0] == "scrooge_tunnel" || msg[0] == "scrooge_tunnel_confirm" {
-		return self.tunnelMsgHandler(msg, iface)
+	switch msg[0] {
+	case "scrooge_hello":
+		return self.helloMsgHandler(msg, iface, false)
+	case "scrooge_hello_confirm":
+		return self.helloMsgHandler(msg, iface, true)
+	case "scrooge_tunnel":
+		return self.tunnelMsgHandler(msg, iface, false)
+	case "scrooge_tunnel_confirm":
+		return self.tunnelMsgHandler(msg, iface, true)
 	}
 
 	return errors.New("unrecognized message type")
@@ -43,8 +46,9 @@ func (self *NeighborAPI) Handlers(
 func (self *NeighborAPI) helloMsgHandler(
 	msg []string,
 	iface *net.Interface,
+	confirm bool,
 ) error {
-	helloMessage, err := serialization.ParseHelloMsg(msg)
+	helloMessage, err := serialization.ParseHelloMsg(msg, confirm)
 	if err != nil {
 		return err
 	}
@@ -79,8 +83,9 @@ func (self *NeighborAPI) helloMsgHandler(
 func (self *NeighborAPI) tunnelMsgHandler(
 	msg []string,
 	iface *net.Interface,
+	confirm bool,
 ) error {
-	tunnelMessage, err := serialization.ParseTunnelMsg(msg)
+	tunnelMessage, err := serialization.ParseTunnelMsg(msg, confirm)
 	if err != nil {
 		return err
 	}

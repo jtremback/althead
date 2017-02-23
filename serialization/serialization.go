@@ -27,9 +27,10 @@ func FmtHelloMsg(
 	}
 
 	s := fmt.Sprintf(
-		"%v %v %v",
+		"%v %v %v %v",
 		msgType,
 		base64.StdEncoding.EncodeToString(msg.SourcePublicKey[:]),
+		base64.StdEncoding.EncodeToString(msg.DestinationPublicKey[:]),
 		msg.Seqnum,
 	)
 
@@ -113,14 +114,11 @@ func verifyMessage(msg []string) (*types.MessageMetadata, error) {
 	}
 	sourcePublicKey := types.BytesToPublicKey(spk)
 
-	var destinationPublicKey [ed25519.PublicKeySize]byte
-	if msg[2] != "0" {
-		dpk, err := base64.StdEncoding.DecodeString(msg[2])
-		if err != nil {
-			return nil, err
-		}
-		destinationPublicKey = types.BytesToPublicKey(dpk)
+	dpk, err := base64.StdEncoding.DecodeString(msg[2])
+	if err != nil {
+		return nil, err
 	}
+	destinationPublicKey := types.BytesToPublicKey(dpk)
 
 	msgWithOutSig := strings.Join(msg[:len(msg)-1], " ")
 	if !ed25519.Verify(&sourcePublicKey, []byte(msgWithOutSig), &signature) {

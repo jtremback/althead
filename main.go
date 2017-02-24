@@ -33,6 +33,8 @@ func main() {
 			log.Fatalln(err)
 		}
 
+		// fmt.Printf("%#v %#v", scroogePubkey, scroogePrivkey)
+
 		wireguardPubkey, wireguardPrivkey, err := ed25519.GenerateKey(rand.Reader)
 		if err != nil {
 			log.Fatalln(err)

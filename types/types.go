@@ -6,10 +6,10 @@ import "github.com/agl/ed25519"
 // Internal types
 
 type Account struct {
-	PublicKey        [ed25519.PublicKeySize]byte
-	PrivateKey       [ed25519.PrivateKeySize]byte
-	Seqnum           uint64
-	ControlAddresses map[string]string
+	PublicKey  [ed25519.PublicKeySize]byte
+	PrivateKey [ed25519.PrivateKeySize]byte
+	Seqnum     uint64
+	// TunnelAddresses  map[string]net.UDPAddr
 	TunnelPublicKey  string
 	TunnelPrivateKey string
 }
@@ -17,29 +17,30 @@ type Account struct {
 type Neighbor struct {
 	PublicKey      [ed25519.PublicKeySize]byte
 	Seqnum         uint64
-	ControlAddress string
 	BillingDetails struct {
 		PaymentAddress string
 	}
-	Tunnel struct {
-		PublicKey        string
-		ListenPort       int            // Every tunnel needs to listen on a different port
-		Endpoint         string         // This is the tunnel endpoint on the Neighbor
-		VirtualInterface *net.Interface // virtual interface created by the tunnel
-	}
+	Tunnel
+}
+
+type Tunnel struct {
+	PublicKey        string
+	ListenPort       int           // Every tunnel needs to listen on a different port
+	Endpoint         string        // This is the tunnel endpoint on the Neighbor
+	VirtualInterface net.Interface // virtual interface created by the tunnel
 }
 
 // Message types
 type MessageMetadata struct {
-	PublicKey [ed25519.PublicKeySize]byte
-	Seqnum    uint64
-	Signature [ed25519.SignatureSize]byte
+	SourcePublicKey      [ed25519.PublicKeySize]byte
+	DestinationPublicKey [ed25519.PublicKeySize]byte
+	Seqnum               uint64
+	Signature            [ed25519.SignatureSize]byte
 }
 
 type HelloMessage struct {
 	MessageMetadata
-	ControlAddress string
-	Confirm        bool
+	Confirm bool
 }
 
 type TunnelMessage struct {

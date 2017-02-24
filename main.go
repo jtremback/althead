@@ -1,10 +1,7 @@
 package main
 
-import
-
-// flags "github.com/jessevdk/go-flags"
-
-(
+import (
+	"crypto/rand"
 	"encoding/base64"
 	"flag"
 	"fmt"
@@ -12,82 +9,100 @@ import
 	"net"
 
 	"github.com/agl/ed25519"
-	"github.com/boltdb/bolt"
-	"github.com/jtremback/scrooge/neighbor-api"
-	"github.com/jtremback/scrooge/types"
+	"github.com/incentivized-mesh-infrastructure/scrooge/neighborAPI"
+	"github.com/incentivized-mesh-infrastructure/scrooge/network"
+	"github.com/incentivized-mesh-infrastructure/scrooge/types"
 )
 
 func main() {
+	genkeys := flag.Bool("genkeys", false, "Generate encryption keys and quit")
 
-	listen := flag.Bool("l", false, "Listen for hellos")
+	ifi := flag.String("interface", "", "Physical network interface to operate on.")
 
-	controlAddress := flag.String("controlAddress", "", "Control address to listen for communication from other nodes.")
 	publicKey := flag.String("publicKey", "", "PublicKey to sign messages to other nodes.")
 	privateKey := flag.String("privateKey", "", "PrivateKey to sign messages to other nodes.")
 
-	ifi := flag.String("interface", "", "Physical network interface to operate on.")
 	tunnelPublicKey := flag.String("tunnelPublicKey", "", "PublicKey of authenticated tunnel")
 	tunnelPrivateKey := flag.String("tunnelPrivateKey", "", "PrivateKey of authenticated tunnel")
 
 	flag.Parse()
 
-	iface, err := net.InterfaceByName(*ifi)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	if *genkeys {
+		scroogePubkey, scroogePrivkey, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			log.Fatalln(err)
+		}
 
-	pubKey, err := base64.StdEncoding.DecodeString(*publicKey)
-	if err != nil {
-		log.Fatalln(err)
-	}
+		// fmt.Printf("%#v %#v", scroogePubkey, scroogePrivkey)
 
-	privKey, err := base64.StdEncoding.DecodeString(*privateKey)
-	if err != nil {
-		log.Fatalln(err)
-	}
+		wireguardPubkey, wireguardPrivkey, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			log.Fatalln(err)
+		}
 
-	db, err := bolt.Open("main.db", 0600, nil)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer db.Close()
+		fmt.Printf(
+			`scrooge pubkey: %v
+scrooge privkey: %v
+wireguard pubkey: %v
+wireguard privkey: %v
+`,
+			base64.StdEncoding.EncodeToString(scroogePubkey[:]),
+			base64.StdEncoding.EncodeToString(scroogePrivkey[:]),
+			base64.StdEncoding.EncodeToString(wireguardPubkey[:]),
+			base64.StdEncoding.EncodeToString(wireguardPrivkey[:]),
+		)
 
-	neighborAPI := neighborAPI.NeighborAPI{
-		Neighbors: map[[ed25519.PublicKeySize]byte]*types.Neighbor{},
-		Account: &types.Account{
-			PublicKey:        types.BytesToPublicKey(pubKey),
-			PrivateKey:       types.BytesToPrivateKey(privKey),
-			ControlAddress:   *controlAddress,
-			TunnelPublicKey:  *tunnelPublicKey,
-			TunnelPrivateKey: *tunnelPrivateKey,
-			Seqnum:           0,
-		},
-	}
+	} else {
 
-	if *listen {
-		log.Println("listen")
-		err := neighborAPI.McastListen(
-			8481,
-			iface,
-			func(neighbor *types.Neighbor, err error) {
-				if err != nil {
-					log.Fatalln(err)
-				}
+		iface, err := net.InterfaceByName(*ifi)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		pubKey, err := base64.StdEncoding.DecodeString(*publicKey)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		privKey, err := base64.StdEncoding.DecodeString(*privateKey)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		network := network.Network{
+			MulticastPort: 8481,
+		}
+
+		neighborAPI := neighborAPI.NeighborAPI{
+			Neighbors: map[[ed25519.PublicKeySize]byte]*types.Neighbor{},
+			Network:   &network,
+			Account: &types.Account{
+				PublicKey:        types.BytesToPublicKey(pubKey),
+				PrivateKey:       types.BytesToPrivateKey(privKey),
+				TunnelPublicKey:  *tunnelPublicKey,
+				TunnelPrivateKey: *tunnelPrivateKey,
+				Seqnum:           0,
 			},
+		}
+
+		callback := func(err error) {
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
+		go network.McastListen(
+			iface,
+			neighborAPI.Handlers,
+			callback,
+		)
+
+		err = neighborAPI.SendHelloMsg(
+			iface,
+			false,
 		)
 		if err != nil {
 			log.Fatalln(err)
 		}
-	} else {
-		log.Println("hello")
-		neighborAPI.McastHello(
-			8481,
-			iface,
-			func(neighbor *types.Neighbor, err error) {
-				if err != nil {
-					log.Fatalln(err)
-				}
-			},
-		)
+		select {}
 	}
 }
